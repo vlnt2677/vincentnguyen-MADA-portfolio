@@ -2,6 +2,19 @@
 title: "About me"
 ---
 
-Add some text and a figure describing myself.
+### Hello, I am Vincent Nguyen
 
-For details, see the exercise instructions. 
+![](images/madapfp.jpg){width="405"}\
+\
+I am 4th year undergraduate student in the Double Dawgs program. I intend to pursue an MPH, specifically in Epidemiology. In the past, I have been involved in research labs that utilize R but definitely not to the extent MADA does. I have dabbled in statistical analysis, machine learning modeling, and more. This course I am to solidify my skills in R (I have used free courses, however, have felt the need for more formal training). I also want to explore more advanced and modern techniques in statistical analysis like machine learning.\
+\
+Fun fact about me is that I love to play games and watch movies. Currently, I am a top ranked player in *Fortnite* (Top 1000!) and in *Marvel Rivals* (Top 3%). My favorite movies are *Tenet* and *Star Wars The Force Awakens*.
+
+### Career
+
+Currently, I am involved in the **Sundaram Lab** at UGA and an intern for the **CDC's Division of Workforce Development**. I aim to become an Epidemiologist or Biostatistician with the skills learned from this class! Some of my research interests include oncology, infectious disease ecology, and parasitology.\
+\
+
+### Highlighted Data Analysis Technique
+
+The application of simulated environments for analyzing changes in health policy is something I am greatly interested in. For example, this [article](https://pmc.ncbi.nlm.nih.gov/articles/PMC8122113/) details the use of [***EU-TOPIA***](https://eu-topia.org/), an evaluation tool designed to allow researchers use country-specific data to quantify the potential benefits and harms of diferent cancer guidelines in their respective country. Going forward, I believe the application of simulated environments can help bolster research at a low cost!

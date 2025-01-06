@@ -1,16 +1,12 @@
 ---
-title: "My website and data analysis portfolio"
+title: "Vincent Nguyen's MADA Portfolio"
 ---
 
-**Feel free to change the text below any way you want 😁!**
+Created on 01/06/2025
 
-# Hello
+# Hello,
 
-### And hello again
+Welcome to **my website** and *data analysis portfolio for* **MADA.**
 
-Welcome to **my website** and _data analysis portfolio._ 
-
-
-* Please use the `Menu Bar` above to look around.
-* Have fun!
-
+-   Please use the `Menu Bar` above to look around.
+-   Have fun!
