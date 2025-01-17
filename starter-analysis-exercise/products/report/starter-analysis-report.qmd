@@ -34,7 +34,7 @@ This report covers the week 2 data analysis project. Alexis Gonzalez made contri
 
 ## General Background Information
 
-*Provide enough background on your topic that others can understand the why and how of your analysis*
+*The analysis intends to seek if there associations between shoe size and preference to the physical characteristics of an individual like their height or weight.*
 
 ## Description of data and data source
 
@@ -42,7 +42,7 @@ This report covers the week 2 data analysis project. Alexis Gonzalez made contri
 
 ## Questions/Hypotheses to be addressed
 
-*The project analyzes characteristics like height, weight, shoe size, and favorite shoe size to find any associations.*
+*The project analyzes characteristics like height, weight, shoe size, and favorite shoe size to find any associations. There is simple descriptive analysis but also linear model creation.*
 
 To cite other work (important everywhere, but likely happens first in introduction), make sure your references are in the bibtex file specified in the YAML header above (here `dataanalysis_template_references.bib`) and have the right bibtex key. Then you can include like this:
 
@@ -54,7 +54,7 @@ Examples of reproducible research projects can for instance be found in [@mckay2
 
 *Describe your methods. That should describe the data, the cleaning processes, and the analysis approaches. You might want to provide a shorter description here and all the details in the supplement.*
 
-## Data aquisition
+## Data acquisition
 
 *As applicable, explain where and how you got the data. If you directly import the data from an online source, you can combine this section with the next.*
 
