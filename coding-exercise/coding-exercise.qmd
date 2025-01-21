@@ -125,7 +125,7 @@ print(population_graph_twothousand)
 
 ```
 
-This part of the exercise is called, "Simple model fits". This code creates a linear model using lm(). Model 1, "Fit1", is a model with life expectancy as the outcome and infant mortality as the predictor. This model has a p-value of 2.826e-08. This indicates significance. Model 2, "Fit2", is a model with population size as a predictor and life expectancy as the outcome. This model has a p-value of 0.6159. This indicaites insignficance.
+This part of the exercise is called, "Simple model fits". This code creates a linear model using lm(). Model 1, "Fit1", is a model with life expectancy as the outcome and infant mortality as the predictor. This model has a p-value of 2.826e-08. This indicates significance. Model 2, "Fit2", is a model with population size as a predictor and life expectancy as the outcome. This model has a p-value of 0.6159. This indicates insignificance.
 
 ```{r}
 # Fit Model 1 - Life Expectancy and Infant Mortality
