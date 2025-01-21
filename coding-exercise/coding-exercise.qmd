@@ -3,3 +3,138 @@ title: "R Coding Exercise"
 ---
 
 Placeholder file for the future R coding exercise.
+
+This coding exercise begins with loading and checking the data using help(), str(), summary(), and class().
+
+```{r}
+# Loading and Checking Data
+
+# loading dslabs package
+library(dslabs)
+
+# look at help file for gapminder data
+help(gapminder)
+
+# get an overview of data structure
+str(gapminder)
+
+# get a summary of the data
+summary(gapminder)
+
+# determine the type of object gapminder is
+class(gapminder)
+```
+
+This part of the exercise is titled, "Processing Data", where objects are creating using the fapminder data set.
+
+```{r}
+# Processing Data
+
+# load tidyverse package
+library(tidyverse)
+
+# create new object/variable called africadata
+africadata <- gapminder %>%
+  filter(continent == "Africa")
+
+# create a new object on only infant_mortality
+infant_health <- africadata %>%
+  select(infant_mortality, life_expectancy)
+
+# Create a new object containing population and life_expectancy
+overall_health <- africadata %>%
+  select(population, life_expectancy)
+
+# inspect new objects
+str(infant_health)
+summary(infant_health)
+
+str(overall_health)
+summary(overall_health)
+```
+
+This part of the exercise is titled, "Plotting", and focuses on creating plots on the objects previously created. For the graph, "Life expectancy as a function of Population Size in Africa", there is a streaking pattern which is caused by countries having several entries in different years. Countries tended to increase in life expectancy and size as years pass.
+
+```{r}
+library(ggplot2)
+
+# create a scatter plot of life expectancy as a function of infant mortality
+infant_graph <- ggplot(africadata, aes(x = infant_mortality, y =life_expectancy)) + geom_point(alpha = 0.6, color = "blue") + labs(
+  title = "Life expectancy as a function of Infant Mortality in Africa",
+  x = "Infant Mortality",
+  y = "Life Expectancy"
+)
+
+# display graph
+print(infant_graph)
+
+# create a scatter plot of life expectancy as a function of population size
+population_graph <- ggplot(africadata, aes(x = population, y = life_expectancy)) + geom_point(alpha = 0.6, color = "blue") + scale_x_log10() + labs(
+  title = "Life expectancy as a function of Population Size in Africa",
+  x = "Population (Log Scale)",
+  y = "Life Expectancy"
+)
+
+# display graph
+print(population_graph)
+
+```
+
+This part of the exercise is titled, "More data processing". In this part, the data is inspected to figure out which years have the most missing counts. The assignment chooses the year 2000 to filter the data. I create an object called africadata_twothousand which contains the filtered data.
+
+``` {r}
+na_count_per_year <- africadata %>%
+  filter(is.na(infant_mortality)) %>%
+  group_by(year) %>%
+  summarize(na_count_per_year = n())
+
+# print result
+print(na_count_per_year)
+
+# create new object with only the year 2000
+africadata_twothousand <- africadata %>%
+  filter(year == "2000")
+
+# check/inspect new object with data from the year 2000
+str(africadata_twothousand)
+summary(africadata_twothousand)
+```
+
+This part of the exercise is called, "More plotting". This is essentially identidical as a previous section but utilizes filtered data for only the year 2000.
+```{r}
+# create a scatter plot of life expectancy as a function of infant mortality
+infant_graph_twothousand <- ggplot(africadata_twothousand, aes(x = infant_mortality, y =life_expectancy)) + geom_point(alpha = 0.6, color = "blue") + labs(
+  title = "Life expectancy as a function of Infant Mortality in Africa in the year 2000",
+  x = "Infant Mortality",
+  y = "Life Expectancy"
+)
+
+# display graph
+print(infant_graph_twothousand)
+
+# create a scatter plot of life expectancy as a function of population size
+population_graph_twothousand <- ggplot(africadata_twothousand, aes(x = population, y = life_expectancy)) + geom_point(alpha = 0.6, color = "blue") + scale_x_log10() + labs(
+  title = "Life expectancy as a function of Population Size in Africa in the year 2000",
+  x = "Population (Log Scale)",
+  y = "Life Expectancy"
+)
+
+# display graph
+print(population_graph_twothousand)
+
+```
+
+This part of the exercise is called, "Simple model fits". This code creates a linear model using lm(). Model 1, "Fit1", is a model with life expectancy as the outcome and infant mortality as the predictor. This model has a p-value of 2.826e-08. This indicates significance. Model 2, "Fit2", is a model with population size as a predictor and life expectancy as the outcome. This model has a p-value of 0.6159. This indicaites insignficance.
+```{r}
+# Fit Model 1 - Life Expectancy and Infant Mortality
+fit1 <- lm(life_expectancy ~ infant_mortality, data = africadata_twothousand)
+
+# summary of fit model 1
+summary(fit1)
+
+# Fit Model 2 - Life Expectancy and Population Size
+fit2 <- lm(life_expectancy ~ population, data = africadata_twothousand)
+
+# summary of fit model 2
+summary(fit2)
+```
