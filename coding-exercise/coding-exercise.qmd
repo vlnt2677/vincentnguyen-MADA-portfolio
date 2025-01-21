@@ -140,3 +140,133 @@ fit2 <- lm(life_expectancy ~ population, data = africadata_twothousand)
 # summary of fit model 2
 summary(fit2)
 ```
+
+# The following sections contributed by Guozheng Yang
+
+# Load packages and dataset
+
+I'm going to explore the *murders* dataset from the package *dslabs*. This dataset contains gun murder data for 2010 reported by FBI, and is sourced from Wikipedia. The dataset is organized by states, with the population of each state included. 
+
+```{r}
+# Load required package
+library(dslabs) # This package has the murders dataset
+library(tidyverse)
+library(ggplot2)
+library(maps) # This package is used to make a map
+
+# Look at help file for murders data
+help(murders)
+```
+
+First of all, let's take a look at the data structure. 
+
+```{r}
+# Determine the type of murders
+class(murders)
+
+# Get an overview of data structure
+str(murders)
+
+# Get a summary of data
+summary(murders)
+
+# Check if there are missing values
+anyNA(murders)
+```
+
+As shown, there are 51 observations and 5 variables in this dataset. 51 states and their abbreviations are listed. The states are also classified by their geographic locations. Two numeric variables denote the population and number of gun murders of each state in 2010. Luckily, we don't have any NA in this dataset. 
+
+# Map plotting
+
+Since we have data from different states, I want to make a map to compare the different gun murder rates by states. Here I calculate the gun murder rates as the number of gun murders divided by the population of each state. Then I use a heatmap to color the statesby their gun murder rates. Of note, the US map data is in the package *maps*, with the longitude and latitude of each state included. This tool makes it convenient for us to draw the heatmap. 
+
+Let's take a look at the data from package *maps* first.
+
+```{r}
+# Extract the US map data
+us_map <- map_data("state")
+
+# Determine the type of murders
+class(us_map)
+
+# Get an overview of data structure
+str(us_map)
+
+# Get a summary of data
+summary(us_map)
+```
+
+As shown, all state names are in stored in the *region* variable in lower case. Variables *long* and *lat* have the longitude and latitude of each state's border. As this is a well prepared data, I will calculate gun murder rates in the *murders* dataset and then merge it into *us_map*.
+
+```{r}
+# Prepare the murders data
+murders <- murders %>%
+  mutate(state_low=tolower(state), # Convert state names to lower case
+         rate=total/population) # Calculate gun murder rate
+
+map_data <- us_map %>%
+  left_join(murders, by=c("region"="state_low"))
+```
+
+As the data for plotting is well prepared, I will use *geom_polygon()* function to draw the map and then color each state by gun murder rates. The *geom_polygon()* function is a useful tool for connecting a group of points by a certain order. In our case, it's used to draw the border line of each state.
+
+```{r}
+# Draw a heatmap of gun murder rates
+us_gmr <- ggplot(map_data, aes(x=long, y=lat, group=group, fill=rate))+
+  geom_polygon(color="steelblue4", linewidth=1)+ # Draw border line of states
+  scale_fill_gradient(name="Gun murder rate", 
+                      low="white", high="firebrick4")+ # Define color gradient
+  theme_bw()+
+  labs(title="Gun murder rate by state", x="Longitude", y="Latitude")+
+  theme(axis.title.x=element_text(size=10, color="black", face="bold"),
+        axis.title.y=element_text(size=10, color="black", face="bold"),
+        axis.text.x=element_text(color="black", size=8),
+        axis.text.y=element_text(color="black", size=8),
+        plot.title=element_text(size=15, color="black", face="bold"),
+        legend.position="right",
+        legend.title=element_text(size=10, face="bold"))
+
+us_gmr
+```
+
+As the map shows, the gun murder rate is higher overall in the southern US. For the northern US, the northwest has a lower gun murder rate than the northeast. This map demonstrate the geographic distribution of gun murder rates. 
+
+# Model fitting
+
+As the response of interest is gun murder rate, it's intuitive to fit a Poisson regression with a *log* link function. In the Poisson regression model, the number of gun murders is the response, and the population of each state is the offset. The region of states is a predictor to show if gun murder rate is different across different regions.
+
+Before that, let's make a grouped boxplot to see if the difference is evident. Here I use *region* as the X-axis and gun murder rate as the Y-axis. 
+
+```{r}
+boxplot <- ggplot(murders, aes(x=region, y=rate))+
+  geom_boxplot(color="firebrick3", width=.5, linewidth=1)+
+  theme_bw()+
+  labs(title="Gun murder rate by region", x="Region", y="Gun murder rate")+
+  theme(axis.title.x=element_text(size=10, color="black", face="bold"),
+        axis.title.y=element_text(size=10, color="black", face="bold"),
+        axis.text.x=element_text(color="black", size=8),
+        axis.text.y=element_text(color="black", size=8),
+        plot.title=element_text(size=15, color="black", face="bold"),
+        legend.position="right",
+        legend.title=element_text(size=10, face="bold"))
+boxplot
+```
+
+As shown, the gun murder rate in southern US is evidently higher compared to other regions. The northeast, north central region, and west of the US have similar gun murder rate, though the median in the west is a little lower.
+
+Now, let's fit a Poisson regression model to see if the regional difference is statistically significant. As indicated by the map above, the southern US has a generally lower gun murder rate. So I want to use *South* as the reference group and adjust the factor levels of *region*.
+
+```{r}
+# Adjust factor level of region
+murders$region_fct <- factor(murders$region, levels=c("South", "North Central", "West", "Northeast"))
+
+# Poisson regression: gun murder rate ~ region
+poi_fit <- glm(total ~ region_fct, offset=log(population), family="poisson", data=murders)
+summary(poi_fit)
+
+# Exponential the coefficient for interpretation
+exp(poi_fit$coefficients)
+```
+
+According to the output, the mean gun murder rate in southern US is 3.63e-5. The north central US has a 25% decrease in gun murder rate compared to southern US. The western and northeastern US both have about 27% decrease in gun murder rate than southern US. Notably, the coefficient for north central US, western US, and northeastern US are all negative with p-values lower than 0.05. We have enough evidence to reject the null hypothesis and conclude that the gun murder rates in these three regions are significantly lower compared to southern US.
+
