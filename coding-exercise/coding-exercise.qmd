@@ -25,7 +25,7 @@ summary(gapminder)
 class(gapminder)
 ```
 
-This part of the exercise is titled, "Processing Data", where objects are creating using the fapminder data set.
+This part of the exercise is titled, "Processing Data", where objects are creating using the gapminder data set.
 
 ```{r}
 # Processing Data
