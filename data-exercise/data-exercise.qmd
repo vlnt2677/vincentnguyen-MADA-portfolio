@@ -1,0 +1,165 @@
+---
+title: "Data Exercise"
+---
+
+# Coding Exercise for Week 4
+
+## Package Loading
+
+First, we will start with loading some necessary packages for data creation, visualization, and more.
+
+```{r}
+# loading dslabs package
+library(dplyr)
+library(purrr)
+library(lubridate)
+library(ggplot2)
+library(here)
+```
+
+## Seed Setting
+
+Since the process is randomized, setting a seed can help improve reproduciblity when creating synthetic data.
+
+```{r}
+# set a seed for reproducibility
+set.seed(123)
+
+# define number of observations
+n_observations <- 100
+
+```
+
+## Data Creation
+
+Next, we will begin by creating the data itself. I chose to make a data set on an imaginary disease in an imaginary area. Each district has their region type (urban, suburban, or rural), case count, vaccination rate, population density, attack rate, and level of intervention (none, partial, or full) recorded. While in real life, these variables can heavily affect one , and especially the case count, for this exercise I chose to focus on a few interactions.
+
+First, population density is heavily dependent on the region type. Next, attack rates are affected by population density and intervention level. Lastly, the case count is affected by population density, vaccination rates, and level of intervention. At the end of this block, I created bounds that try to align with what is logically expected for these values.
+
+```{r}
+# create empty data frame with placeholders for variables
+
+syn_data <- data.frame(
+  DistrictID = numeric(n_observations),
+  RegionType = character(n_observations),
+  CaseCount = numeric(n_observations),
+  VaccinationRate = numeric(n_observations),
+  PopulationDensity = numeric(n_observations),
+  AttackRate = numeric(n_observations),
+  Intervention = character(n_observations)
+)
+
+# Variable 1: District ID
+syn_data$DistrictID <- 1:n_observations
+
+# Variable 2: Region Type (Categorical variable)
+syn_data$RegionType <- purrr::map_chr(sample(c("Urban", "Rural", "Suburban"), n_observations, replace = TRUE), as.character)
+
+
+
+# Variable 4: Vaccination Rate
+syn_data$VaccinationRate <- runif(n_observations, min = 0.5, max = 1.0)
+
+# Variable 5: Population Density (per km squared)
+syn_data$PopulationDensity <- with(syn_data, ifelse(
+  RegionType == "Urban", rnorm(sum(RegionType == "Urban"), mean = 3000, sd = 500),
+  ifelse(RegionType == "Suburban", rnorm(sum(RegionType == "Suburban"), mean = 1000, sd = 300),
+         rnorm(sum(RegionType == "Rural"), mean = 100, sd = 50)
+  )
+))
+
+# Variable 7: Level of Public Health Intervention
+syn_data$Intervention <- purrr::map_chr(sample(c("None", "Partial", "Full"), n_observations, replace = TRUE), as.character)
+
+# Variable 6: Attack Rate (Assisted with by ChatGPT)
+syn_data$AttackRate <- ifelse(
+  syn_data$RegionType == "Urban",
+  runif(n_observations, min = 0.05, max = 0.2) * ifelse(syn_data$Intervention == "Full", 0.7, 1.2),
+  runif(n_observations, min = 0.01, max = 0.15)
+)
+
+
+# Variable 3: Case Count (Numerical Variable) Assisted with by ChatGPT (moved down here to follow coding flow)
+syn_data$CaseCount <- round(
+  (200 / (syn_data$VaccinationRate * 2)) * 
+  (syn_data$PopulationDensity / 1000) * 
+  ifelse(syn_data$Intervention == "Full", 0.5, 
+         ifelse(syn_data$Intervention == "Partial", 0.8, 1.0))
+)
+
+# Ensure logical bounds
+syn_data$CaseCount <- pmax(syn_data$CaseCount, 0)
+syn_data$AttackRate <- round(pmax(pmin(syn_data$AttackRate, 1), 0.01), 2)
+syn_data$PopulationDensity <- pmax(syn_data$PopulationDensity, 50)  # Density cannot be negative
+syn_data$VaccinationRate <- round(syn_data$VaccinationRate, 2)  # Round vaccination rates
+syn_data$PopulationDensity <- pmax(syn_data$PopulationDensity, 10)
+
+
+```
+
+## Data Exploration
+
+In this section, I begin by looking at summary statistic for the data. After that, I begin exploring the data visually through various box and scatter plots.
+
+```{r}
+
+# Summary of data
+summary(syn_data)
+dplyr::glimpse(syn_data) 
+
+# Region Case Count
+region_cases <- ggplot(syn_data, aes(x = RegionType, y = CaseCount, fill = RegionType)) + geom_boxplot() + theme_minimal() + labs(title = "Case Count by Region Type",
+                        x = "Region Type",
+                        y = "Case Count")
+
+print(region_cases)
+
+
+# Intervention x Case Count
+intervention_cases <- ggplot(syn_data, aes(x = Intervention, y = CaseCount, fill = Intervention)) + geom_boxplot() + theme_minimal() + labs(title = "Case Count by Intervention Level",
+                        x = "Intervention Level",
+                        y = "Case Count")
+
+print(intervention_cases)
+
+# Region x Intervention x Case Count
+region_intervention_cases <- ggplot(syn_data, aes(x = RegionType, y = CaseCount, fill = Intervention)) + geom_boxplot() + theme_minimal() + labs(title = "Case Count by Region Type and Intervention level",
+                        x = "Region Type",
+                        y = "Case Count")
+
+print(region_intervention_cases)
+
+# Population Density x Case Count
+density_cases <- ggplot(syn_data, aes(x = PopulationDensity, y =CaseCount)) + geom_point() + theme_minimal() +
+    labs(title = "Case Count by Population Density",
+         x = "Population Density (per km squared and Log Scaled)",
+         y = "Case Count") +
+    scale_x_log10()
+
+print(density_cases)
+```
+
+## Model Creation
+
+For the final part of this mini-exploration, I chose to conduct three analyses.
+
+First, I did a linear model with the 3 variables, population density, vaccination rate, and intervention. The adjusted R-squared of 0.9313 indicates that, after accounting for the number of predictors, 93.13% of the variance in case count is explained by the variables.
+
+Next, I looked at whether intervention levels significantly affected the case count of a district by using ANOVA. The p-value of 0.0104 indicates that there is a significant differences among intervention levels.
+
+Lastly, principle component analysis was conducted for exploration purposes. The results indicate that PC1, Population Density, explains 65.1% of the variation seen in the case counts. PC2, vaccination rate, explains 33.12% and PC3, Intervention Level, explains 1.774%. With this in mind, models in the future can consider omitting PC3 because of its small contribution to variance.
+
+```{R}
+# Creation of Linear Model with 3 variables, population density, vaccination rate, and intervention
+lm_model_everything <- lm(CaseCount ~ PopulationDensity + VaccinationRate + Intervention, data = syn_data)
+summary(lm_model_everything)
+
+# Creation of ANOVA to test if intervention levels signficantly affect case count
+anova_model <- aov(CaseCount ~ Intervention, data = syn_data)
+summary(anova_model)
+
+# Principle Component Analysis (suggested by ChatGPT) to view which variables explain the variance
+pca_model <- prcomp(syn_data[, c("PopulationDensity", "VaccinationRate", "CaseCount")], center = TRUE, scale. = TRUE)
+summary(pca_model)
+
+```
