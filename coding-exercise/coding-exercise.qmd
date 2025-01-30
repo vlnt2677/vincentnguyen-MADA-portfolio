@@ -1,5 +1,7 @@
 ---
 title: "R Coding Exercise"
+author: "Vincent Nguyen"
+date: January 2025
 ---
 
 Placeholder file for the future R coding exercise.
