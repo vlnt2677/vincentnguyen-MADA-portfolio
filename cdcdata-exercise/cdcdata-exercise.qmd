@@ -1,0 +1,128 @@
+---
+title: "CDC Data Exercise"
+author: "Vincent Nguyen"
+date: "February 3, 2025"
+---
+
+# Coding Exercise for Week 5
+
+## Package Loading
+
+First, we will start with loading some necessary packages for data creation, visualization, and more.
+
+```{r}
+# loading dslabs package
+library(dplyr)
+library(purrr)
+library(lubridate)
+library(ggplot2)
+library(here)
+library(readr)
+library(janitor)
+```
+
+## Data Set
+
+The data set is titled, "[Weekly Provisional Counts of Deaths by State and Select Causes, 2020-2023](https://data.cdc.gov/NCHS/Weekly-Provisional-Counts-of-Deaths-by-State-and-S/muzy-jte6/about_data)". The data set contains 10476 observations of 35 variables. It covers counts of death by nationally or by state. Additionally, it includes causes of death and more.
+
+```{r}
+# Import dataset
+
+# path to data
+# note the use of the here() package and not absolute paths
+data_location <- here::here("cdcdata-exercise", "Weekly_Provisional_Counts_of_Deaths_by_State_and_Select_Causes__2020-2023_20250204.csv")
+data <- read.csv(data_location)%>%
+  clean_names()
+
+# filterd for only the US (no states) and then also removed some diseases not of interest
+# also rename the columns because they are formatted weird
+data_filtered <- data %>%
+  filter(jurisdiction_of_occurrence == "United States") %>%
+  select(1:7, 9:10, 12, 17) %>%
+  rename(
+    cancer_count = malignant_neoplasms_c00_c97,
+    diabetes_count = diabetes_mellitus_e10_e14,
+    influenza_pneumonia_count = influenza_and_pneumonia_j09_j18,
+    heart_disease_count = diseases_of_heart_i00_i09_i11_i13_i20_i51
+  )
+
+
+```
+
+## Summary Stats
+
+Creation of summary statistics for the entire data set and for diseases of interest.
+
+```{r}
+# summary statistics of all causes of death
+summary(data_filtered)
+
+# mmean / sd of cancer deaths
+mean(data_filtered$cancer_count)
+sd(data_filtered$cancer_count)
+
+# mean / sd of diabetes
+mean(data_filtered$diabetes_count)
+sd(data_filtered$diabetes_count)
+
+# mean / sd of heart disease
+mean(data_filtered$heart_disease_count)
+sd(data_filtered$heart_disease_count)
+
+# mean / sd of influenza and pneumonia
+mean(data_filtered$influenza_pneumonia_count)
+sd(data_filtered$influenza_pneumonia_count)
+
+```
+
+## Graphs for Distributions
+
+Creation of graphs to visualize the distribution of death count cases on a MMWR week-to-week basis. Surprisingly, they look almost normal with some skewing on some of the graphs.
+
+```{r}
+# Distribution graph of cancer deaths
+cancer_graph <- ggplot(data_filtered, aes(x = cancer_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Cancer Death Count",
+    y = "Frequency",
+    title = "Distribution of Cancer Death Counts"
+  )
+
+print(cancer_graph)
+
+# Distribution graph of diabetes deaths
+diabetes_graph <- ggplot(data_filtered, aes(x = diabetes_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Diabetes Death Count",
+    y = "Frequency",
+    title = "Distribution of Diabetes Death Counts"
+  )
+
+print(diabetes_graph)
+
+
+# Distribution graph of heart disease deaths
+heart_disease_graph <- ggplot(data_filtered, aes(x = heart_disease_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Heart Disease Death Count",
+    y = "Frequency",
+    title = "Distribution of Heart Disease Death Counts"
+  )
+
+print(heart_disease_graph)
+
+# Distribution graph of influenza/pneumonia deaths
+influenza_pneumonia_graph <- ggplot(data_filtered, aes(x = influenza_pneumonia_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Influenza/Pneumonia Death Count",
+    y = "Frequency",
+    title = "Distribution of Influenza/Pneumonia Death Counts"
+  )
+
+print(influenza_pneumonia_graph)
+
+```

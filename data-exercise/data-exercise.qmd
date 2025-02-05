@@ -165,3 +165,9 @@ pca_model <- prcomp(syn_data[, c("PopulationDensity", "VaccinationRate", "CaseCo
 summary(pca_model)
 
 ```
+
+```{r}
+
+
+
+```
