@@ -242,6 +242,9 @@ Attaching package: 'lubridate'</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'here' was built under R version 4.3.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
 <pre><code>here() starts at C:/Users/vince/OneDrive/Desktop/port-MADA/vincentnguyen-MADA-portfolio</code></pre>
 </div>
 </div>
@@ -250,11 +253,11 @@ Attaching package: 'lubridate'</code></pre>
 <h2 class="anchored" data-anchor-id="seed-setting">Seed Setting</h2>
 <p>Since the process is randomized, setting a seed can help improve reproduciblity when creating synthetic data.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set a seed for reproducibility</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># define number of observations</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>n_observations <span class="ot">&lt;-</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set a seed for reproducibility</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># define number of observations</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>n_observations <span class="ot">&lt;-</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="data-creation" class="level2">
@@ -262,70 +265,70 @@ Attaching package: 'lubridate'</code></pre>
 <p>Next, we will begin by creating the data itself. I chose to make a data set on an imaginary disease in an imaginary area. Each district has their region type (urban, suburban, or rural), case count, vaccination rate, population density, attack rate, and level of intervention (none, partial, or full) recorded. While in real life, these variables can heavily affect one , and especially the case count, for this exercise I chose to focus on a few interactions.</p>
 <p>First, population density is heavily dependent on the region type. Next, attack rates are affected by population density and intervention level. Lastly, the case count is affected by population density, vaccination rates, and level of intervention. At the end of this block, I created bounds that try to align with what is logically expected for these values.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create empty data frame with placeholders for variables</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>syn_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">DistrictID =</span> <span class="fu">numeric</span>(n_observations),</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">RegionType =</span> <span class="fu">character</span>(n_observations),</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">CaseCount =</span> <span class="fu">numeric</span>(n_observations),</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">VaccinationRate =</span> <span class="fu">numeric</span>(n_observations),</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">PopulationDensity =</span> <span class="fu">numeric</span>(n_observations),</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">AttackRate =</span> <span class="fu">numeric</span>(n_observations),</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">Intervention =</span> <span class="fu">character</span>(n_observations)</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 1: District ID</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>DistrictID <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_observations</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 2: Region Type (Categorical variable)</span></span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>RegionType <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_chr</span>(<span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">"Urban"</span>, <span class="st">"Rural"</span>, <span class="st">"Suburban"</span>), n_observations, <span class="at">replace =</span> <span class="cn">TRUE</span>), as.character)</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 4: Vaccination Rate</span></span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>VaccinationRate <span class="ot">&lt;-</span> <span class="fu">runif</span>(n_observations, <span class="at">min =</span> <span class="fl">0.5</span>, <span class="at">max =</span> <span class="fl">1.0</span>)</span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 5: Population Density (per km squared)</span></span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>PopulationDensity <span class="ot">&lt;-</span> <span class="fu">with</span>(syn_data, <span class="fu">ifelse</span>(</span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>  RegionType <span class="sc">==</span> <span class="st">"Urban"</span>, <span class="fu">rnorm</span>(<span class="fu">sum</span>(RegionType <span class="sc">==</span> <span class="st">"Urban"</span>), <span class="at">mean =</span> <span class="dv">3000</span>, <span class="at">sd =</span> <span class="dv">500</span>),</span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(RegionType <span class="sc">==</span> <span class="st">"Suburban"</span>, <span class="fu">rnorm</span>(<span class="fu">sum</span>(RegionType <span class="sc">==</span> <span class="st">"Suburban"</span>), <span class="at">mean =</span> <span class="dv">1000</span>, <span class="at">sd =</span> <span class="dv">300</span>),</span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>         <span class="fu">rnorm</span>(<span class="fu">sum</span>(RegionType <span class="sc">==</span> <span class="st">"Rural"</span>), <span class="at">mean =</span> <span class="dv">100</span>, <span class="at">sd =</span> <span class="dv">50</span>)</span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>))</span>
-<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 7: Level of Public Health Intervention</span></span>
-<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>Intervention <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_chr</span>(<span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">"None"</span>, <span class="st">"Partial"</span>, <span class="st">"Full"</span>), n_observations, <span class="at">replace =</span> <span class="cn">TRUE</span>), as.character)</span>
-<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 6: Attack Rate (Assisted with by ChatGPT)</span></span>
-<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>AttackRate <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(</span>
-<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>  syn_data<span class="sc">$</span>RegionType <span class="sc">==</span> <span class="st">"Urban"</span>,</span>
-<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">runif</span>(n_observations, <span class="at">min =</span> <span class="fl">0.05</span>, <span class="at">max =</span> <span class="fl">0.2</span>) <span class="sc">*</span> <span class="fu">ifelse</span>(syn_data<span class="sc">$</span>Intervention <span class="sc">==</span> <span class="st">"Full"</span>, <span class="fl">0.7</span>, <span class="fl">1.2</span>),</span>
-<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">runif</span>(n_observations, <span class="at">min =</span> <span class="fl">0.01</span>, <span class="at">max =</span> <span class="fl">0.15</span>)</span>
-<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 3: Case Count (Numerical Variable) Assisted with by ChatGPT (moved down here to follow coding flow)</span></span>
-<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>CaseCount <span class="ot">&lt;-</span> <span class="fu">round</span>(</span>
-<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">200</span> <span class="sc">/</span> (syn_data<span class="sc">$</span>VaccinationRate <span class="sc">*</span> <span class="dv">2</span>)) <span class="sc">*</span> </span>
-<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>  (syn_data<span class="sc">$</span>PopulationDensity <span class="sc">/</span> <span class="dv">1000</span>) <span class="sc">*</span> </span>
-<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(syn_data<span class="sc">$</span>Intervention <span class="sc">==</span> <span class="st">"Full"</span>, <span class="fl">0.5</span>, </span>
-<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>         <span class="fu">ifelse</span>(syn_data<span class="sc">$</span>Intervention <span class="sc">==</span> <span class="st">"Partial"</span>, <span class="fl">0.8</span>, <span class="fl">1.0</span>))</span>
-<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure logical bounds</span></span>
-<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>CaseCount <span class="ot">&lt;-</span> <span class="fu">pmax</span>(syn_data<span class="sc">$</span>CaseCount, <span class="dv">0</span>)</span>
-<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>AttackRate <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">pmax</span>(<span class="fu">pmin</span>(syn_data<span class="sc">$</span>AttackRate, <span class="dv">1</span>), <span class="fl">0.01</span>), <span class="dv">2</span>)</span>
-<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>PopulationDensity <span class="ot">&lt;-</span> <span class="fu">pmax</span>(syn_data<span class="sc">$</span>PopulationDensity, <span class="dv">50</span>)  <span class="co"># Density cannot be negative</span></span>
-<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>VaccinationRate <span class="ot">&lt;-</span> <span class="fu">round</span>(syn_data<span class="sc">$</span>VaccinationRate, <span class="dv">2</span>)  <span class="co"># Round vaccination rates</span></span>
-<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>PopulationDensity <span class="ot">&lt;-</span> <span class="fu">pmax</span>(syn_data<span class="sc">$</span>PopulationDensity, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create empty data frame with placeholders for variables</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>syn_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">DistrictID =</span> <span class="fu">numeric</span>(n_observations),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">RegionType =</span> <span class="fu">character</span>(n_observations),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">CaseCount =</span> <span class="fu">numeric</span>(n_observations),</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">VaccinationRate =</span> <span class="fu">numeric</span>(n_observations),</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">PopulationDensity =</span> <span class="fu">numeric</span>(n_observations),</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">AttackRate =</span> <span class="fu">numeric</span>(n_observations),</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">Intervention =</span> <span class="fu">character</span>(n_observations)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 1: District ID</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>DistrictID <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_observations</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 2: Region Type (Categorical variable)</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>RegionType <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_chr</span>(<span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">"Urban"</span>, <span class="st">"Rural"</span>, <span class="st">"Suburban"</span>), n_observations, <span class="at">replace =</span> <span class="cn">TRUE</span>), as.character)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 4: Vaccination Rate</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>VaccinationRate <span class="ot">&lt;-</span> <span class="fu">runif</span>(n_observations, <span class="at">min =</span> <span class="fl">0.5</span>, <span class="at">max =</span> <span class="fl">1.0</span>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 5: Population Density (per km squared)</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>PopulationDensity <span class="ot">&lt;-</span> <span class="fu">with</span>(syn_data, <span class="fu">ifelse</span>(</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  RegionType <span class="sc">==</span> <span class="st">"Urban"</span>, <span class="fu">rnorm</span>(<span class="fu">sum</span>(RegionType <span class="sc">==</span> <span class="st">"Urban"</span>), <span class="at">mean =</span> <span class="dv">3000</span>, <span class="at">sd =</span> <span class="dv">500</span>),</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(RegionType <span class="sc">==</span> <span class="st">"Suburban"</span>, <span class="fu">rnorm</span>(<span class="fu">sum</span>(RegionType <span class="sc">==</span> <span class="st">"Suburban"</span>), <span class="at">mean =</span> <span class="dv">1000</span>, <span class="at">sd =</span> <span class="dv">300</span>),</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>         <span class="fu">rnorm</span>(<span class="fu">sum</span>(RegionType <span class="sc">==</span> <span class="st">"Rural"</span>), <span class="at">mean =</span> <span class="dv">100</span>, <span class="at">sd =</span> <span class="dv">50</span>)</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 7: Level of Public Health Intervention</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>Intervention <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_chr</span>(<span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">"None"</span>, <span class="st">"Partial"</span>, <span class="st">"Full"</span>), n_observations, <span class="at">replace =</span> <span class="cn">TRUE</span>), as.character)</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 6: Attack Rate (Assisted with by ChatGPT)</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>AttackRate <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>  syn_data<span class="sc">$</span>RegionType <span class="sc">==</span> <span class="st">"Urban"</span>,</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">runif</span>(n_observations, <span class="at">min =</span> <span class="fl">0.05</span>, <span class="at">max =</span> <span class="fl">0.2</span>) <span class="sc">*</span> <span class="fu">ifelse</span>(syn_data<span class="sc">$</span>Intervention <span class="sc">==</span> <span class="st">"Full"</span>, <span class="fl">0.7</span>, <span class="fl">1.2</span>),</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">runif</span>(n_observations, <span class="at">min =</span> <span class="fl">0.01</span>, <span class="at">max =</span> <span class="fl">0.15</span>)</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Variable 3: Case Count (Numerical Variable) Assisted with by ChatGPT (moved down here to follow coding flow)</span></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>CaseCount <span class="ot">&lt;-</span> <span class="fu">round</span>(</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">200</span> <span class="sc">/</span> (syn_data<span class="sc">$</span>VaccinationRate <span class="sc">*</span> <span class="dv">2</span>)) <span class="sc">*</span> </span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>  (syn_data<span class="sc">$</span>PopulationDensity <span class="sc">/</span> <span class="dv">1000</span>) <span class="sc">*</span> </span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(syn_data<span class="sc">$</span>Intervention <span class="sc">==</span> <span class="st">"Full"</span>, <span class="fl">0.5</span>, </span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>         <span class="fu">ifelse</span>(syn_data<span class="sc">$</span>Intervention <span class="sc">==</span> <span class="st">"Partial"</span>, <span class="fl">0.8</span>, <span class="fl">1.0</span>))</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure logical bounds</span></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>CaseCount <span class="ot">&lt;-</span> <span class="fu">pmax</span>(syn_data<span class="sc">$</span>CaseCount, <span class="dv">0</span>)</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>AttackRate <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">pmax</span>(<span class="fu">pmin</span>(syn_data<span class="sc">$</span>AttackRate, <span class="dv">1</span>), <span class="fl">0.01</span>), <span class="dv">2</span>)</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>PopulationDensity <span class="ot">&lt;-</span> <span class="fu">pmax</span>(syn_data<span class="sc">$</span>PopulationDensity, <span class="dv">50</span>)  <span class="co"># Density cannot be negative</span></span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>VaccinationRate <span class="ot">&lt;-</span> <span class="fu">round</span>(syn_data<span class="sc">$</span>VaccinationRate, <span class="dv">2</span>)  <span class="co"># Round vaccination rates</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>syn_data<span class="sc">$</span>PopulationDensity <span class="ot">&lt;-</span> <span class="fu">pmax</span>(syn_data<span class="sc">$</span>PopulationDensity, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="data-exploration" class="level2">
 <h2 class="anchored" data-anchor-id="data-exploration">Data Exploration</h2>
 <p>In this section, I begin by looking at summary statistic for the data. After that, I begin exploring the data visually through various box and scatter plots.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary of data</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(syn_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary of data</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(syn_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   DistrictID      RegionType          CaseCount     VaccinationRate 
  Min.   :  1.00   Length:100         Min.   :  3.0   Min.   :0.5100  
@@ -342,7 +345,7 @@ Attaching package: 'lubridate'</code></pre>
  3rd Qu.:2599.9    3rd Qu.:0.1300                     
  Max.   :3954.6    Max.   :0.2300                     </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>dplyr<span class="sc">::</span><span class="fu">glimpse</span>(syn_data) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>dplyr<span class="sc">::</span><span class="fu">glimpse</span>(syn_data) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rows: 100
 Columns: 7
@@ -354,12 +357,12 @@ $ PopulationDensity &lt;dbl&gt; 840.72804, 561.47332, 1206.37503, 56.72436, 613.
 $ AttackRate        &lt;dbl&gt; 0.14, 0.03, 0.10, 0.03, 0.01, 0.08, 0.02, 0.05, 0.07…
 $ Intervention      &lt;chr&gt; "None", "Full", "Partial", "None", "None", "Full", "…</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Region Case Count</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>region_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> RegionType, <span class="at">y =</span> CaseCount, <span class="at">fill =</span> RegionType)) <span class="sc">+</span> <span class="fu">geom_boxplot</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Region Type"</span>,</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">x =</span> <span class="st">"Region Type"</span>,</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> <span class="st">"Case Count"</span>)</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(region_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Region Case Count</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>region_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> RegionType, <span class="at">y =</span> CaseCount, <span class="at">fill =</span> RegionType)) <span class="sc">+</span> <span class="fu">geom_boxplot</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Region Type"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">x =</span> <span class="st">"Region Type"</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> <span class="st">"Case Count"</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(region_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -367,12 +370,12 @@ $ Intervention      &lt;chr&gt; "None", "Full", "Partial", "None", "None", "Full
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Intervention x Case Count</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>intervention_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> Intervention, <span class="at">y =</span> CaseCount, <span class="at">fill =</span> Intervention)) <span class="sc">+</span> <span class="fu">geom_boxplot</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Intervention Level"</span>,</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">x =</span> <span class="st">"Intervention Level"</span>,</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> <span class="st">"Case Count"</span>)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(intervention_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Intervention x Case Count</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>intervention_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> Intervention, <span class="at">y =</span> CaseCount, <span class="at">fill =</span> Intervention)) <span class="sc">+</span> <span class="fu">geom_boxplot</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Intervention Level"</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">x =</span> <span class="st">"Intervention Level"</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> <span class="st">"Case Count"</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(intervention_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -380,12 +383,12 @@ $ Intervention      &lt;chr&gt; "None", "Full", "Partial", "None", "None", "Full
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Region x Intervention x Case Count</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>region_intervention_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> RegionType, <span class="at">y =</span> CaseCount, <span class="at">fill =</span> Intervention)) <span class="sc">+</span> <span class="fu">geom_boxplot</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Region Type and Intervention level"</span>,</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">x =</span> <span class="st">"Region Type"</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> <span class="st">"Case Count"</span>)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(region_intervention_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Region x Intervention x Case Count</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>region_intervention_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> RegionType, <span class="at">y =</span> CaseCount, <span class="at">fill =</span> Intervention)) <span class="sc">+</span> <span class="fu">geom_boxplot</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Region Type and Intervention level"</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">x =</span> <span class="st">"Region Type"</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> <span class="st">"Case Count"</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(region_intervention_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -393,14 +396,14 @@ $ Intervention      &lt;chr&gt; "None", "Full", "Partial", "None", "None", "Full
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Population Density x Case Count</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>density_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> PopulationDensity, <span class="at">y =</span>CaseCount)) <span class="sc">+</span> <span class="fu">geom_point</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Population Density"</span>,</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Population Density (per km squared and Log Scaled)"</span>,</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> <span class="st">"Case Count"</span>) <span class="sc">+</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_log10</span>()</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(density_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Population Density x Case Count</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>density_cases <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(syn_data, <span class="fu">aes</span>(<span class="at">x =</span> PopulationDensity, <span class="at">y =</span>CaseCount)) <span class="sc">+</span> <span class="fu">geom_point</span>() <span class="sc">+</span> <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Count by Population Density"</span>,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Population Density (per km squared and Log Scaled)"</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> <span class="st">"Case Count"</span>) <span class="sc">+</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_log10</span>()</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(density_cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -417,9 +420,9 @@ $ Intervention      &lt;chr&gt; "None", "Full", "Partial", "None", "None", "Full
 <p>Next, I looked at whether intervention levels significantly affected the case count of a district by using ANOVA. The p-value of 0.0104 indicates that there is a significant differences among intervention levels.</p>
 <p>Lastly, principle component analysis was conducted for exploration purposes. The results indicate that PC1, Population Density, explains 65.1% of the variation seen in the case counts. PC2, vaccination rate, explains 33.12% and PC3, Intervention Level, explains 1.774%. With this in mind, models in the future can consider omitting PC3 because of its small contribution to variance.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creation of Linear Model with 3 variables, population density, vaccination rate, and intervention</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>lm_model_everything <span class="ot">&lt;-</span> <span class="fu">lm</span>(CaseCount <span class="sc">~</span> PopulationDensity <span class="sc">+</span> VaccinationRate <span class="sc">+</span> Intervention, <span class="at">data =</span> syn_data)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_model_everything)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creation of Linear Model with 3 variables, population density, vaccination rate, and intervention</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>lm_model_everything <span class="ot">&lt;-</span> <span class="fu">lm</span>(CaseCount <span class="sc">~</span> PopulationDensity <span class="sc">+</span> VaccinationRate <span class="sc">+</span> Intervention, <span class="at">data =</span> syn_data)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_model_everything)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Call:
@@ -444,9 +447,9 @@ Residual standard error: 38.43 on 95 degrees of freedom
 Multiple R-squared:  0.934, Adjusted R-squared:  0.9313 
 F-statistic: 336.3 on 4 and 95 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creation of ANOVA to test if intervention levels signficantly affect case count</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>anova_model <span class="ot">&lt;-</span> <span class="fu">aov</span>(CaseCount <span class="sc">~</span> Intervention, <span class="at">data =</span> syn_data)</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(anova_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creation of ANOVA to test if intervention levels signficantly affect case count</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>anova_model <span class="ot">&lt;-</span> <span class="fu">aov</span>(CaseCount <span class="sc">~</span> Intervention, <span class="at">data =</span> syn_data)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(anova_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>             Df  Sum Sq Mean Sq F value Pr(&gt;F)  
 Intervention  2  191028   95514   4.785 0.0104 *
@@ -454,9 +457,9 @@ Residuals    97 1936247   19961
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Principle Component Analysis (suggested by ChatGPT) to view which variables explain the variance</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>pca_model <span class="ot">&lt;-</span> <span class="fu">prcomp</span>(syn_data[, <span class="fu">c</span>(<span class="st">"PopulationDensity"</span>, <span class="st">"VaccinationRate"</span>, <span class="st">"CaseCount"</span>)], <span class="at">center =</span> <span class="cn">TRUE</span>, <span class="at">scale. =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(pca_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Principle Component Analysis (suggested by ChatGPT) to view which variables explain the variance</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>pca_model <span class="ot">&lt;-</span> <span class="fu">prcomp</span>(syn_data[, <span class="fu">c</span>(<span class="st">"PopulationDensity"</span>, <span class="st">"VaccinationRate"</span>, <span class="st">"CaseCount"</span>)], <span class="at">center =</span> <span class="cn">TRUE</span>, <span class="at">scale. =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(pca_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Importance of components:
                          PC1    PC2     PC3
