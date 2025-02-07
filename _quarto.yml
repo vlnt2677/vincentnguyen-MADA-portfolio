@@ -12,6 +12,8 @@ website:
         menu:
           - text: "Starter Analysis Exercise"
             file: starter-analysis-exercise/products/report/starter-analysis-report.qmd
+          - text: "Week 4 Data Exercise"
+            file: data-exercise/data-exercise.qmd
           - text: "R Coding Exercise"
             file: coding-exercise/coding-exercise.qmd
           - text: "Week 4 Data Exercise"
