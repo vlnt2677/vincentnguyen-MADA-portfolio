@@ -126,3 +126,125 @@ influenza_pneumonia_graph <- ggplot(data_filtered, aes(x = influenza_pneumonia_c
 print(influenza_pneumonia_graph)
 
 ```
+
+## Synthesizing New Data
+This section was contributed by Connor Norris.
+
+```{r}
+#Additional exploratory analysis
+
+#Mean and SD of all-cause mortality
+paste("Mean of All-Cause Mortality:", mean(data_filtered$all_cause))
+paste("SD of All-Cause Mortality:", sd(data_filtered$all_cause))
+
+#Histogram of all-cause mortality
+ggplot(data_filtered, aes(x = all_cause)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black") +
+  labs(
+    x = "All Cause Mortality Count",
+    y = "Frequency",
+    title = "Distribution of All Cause Mortality"
+  )
+
+#Mean and SD of natural cause mortality
+paste("Mean of Natural Cause Mortality:", mean(data_filtered$natural_cause))
+paste("SD of Natural Cause Mortality:", sd(data_filtered$natural_cause))
+
+#Histogram of natural cause mortality
+ggplot(data_filtered, aes(x = natural_cause)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black") +
+  labs(
+    x = "Natural Cause Mortality Count",
+    y = "Frequency",
+    title = "Distribution of Natural Cause Mortality"
+  )
+```
+
+```{r}
+#Synthetic data creation
+obs <- nrow(data_filtered) #Number of observations
+
+syn <- data.frame(
+  
+  #Set non-mortality data to match the previous dataset
+  data_as_of = rep(as.Date('02/07/25', format = "%m/%d/%y"), obs),
+  jurisdiction_of_occurance = rep('United States', obs),
+  mmwr_year = c(rep(2020, nrow(filter(data_filtered, mmwr_year == 2020))),
+                rep(2021, nrow(filter(data_filtered, mmwr_year == 2021))),
+                rep(2022, nrow(filter(data_filtered, mmwr_year == 2022))),
+                rep(2023, nrow(filter(data_filtered, mmwr_year == 2023)))),
+  mmwr_week = c(1:nrow(filter(data_filtered, mmwr_year == 2020)),
+                1:nrow(filter(data_filtered, mmwr_year == 2021)),
+                1:nrow(filter(data_filtered, mmwr_year == 2022)),
+                1:nrow(filter(data_filtered, mmwr_year == 2023))),
+  
+  #Simulate the mortality variables using normal distributions
+  all_cause = rnorm(obs, mean = mean(data_filtered$all_cause), sd = sd(data_filtered$all_cause)),
+  natural_cause = rnorm(obs, mean = mean(data_filtered$natural_cause), sd = sd(data_filtered$natural_cause)),
+  cancer_count = rnorm(obs, mean = mean(data_filtered$cancer_count), sd = sd(data_filtered$cancer_count)),
+  diabetes_count = rnorm(obs, mean = mean(data_filtered$diabetes_count), sd = sd(data_filtered$diabetes_count)),
+  influenza_pneumonia_count = rnorm(obs, mean = mean(data_filtered$influenza_pneumonia_count), sd = sd(data_filtered$influenza_pneumonia_count)),
+  heart_disease_count = rnorm(obs, mean = mean(data_filtered$heart_disease_count), sd = sd(data_filtered$heart_disease_count))
+)
+```
+
+After synthesizing the new dataset, I will plot histograms of each of the mortality variables and compare to the original dataset.
+
+```{r}
+#Plotting distributions
+#All-cause mortality
+ggplot(syn, aes(x = all_cause)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black") +
+  labs(
+    x = "All Cause Mortality Count (Synthetic Data)",
+    y = "Frequency",
+    title = "Distribution of All Cause Mortality"
+  )
+
+#Natural cause mortality
+ggplot(syn, aes(x = natural_cause)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black") +
+  labs(
+    x = "Natural Cause Mortality Count (Synthetic Data)",
+    y = "Frequency",
+    title = "Distribution of Natural Cause Mortality"
+  )
+
+#Cancer mortality
+ggplot(syn, aes(x = cancer_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Cancer Mortality Count (Synthetic Data)",
+    y = "Frequency",
+    title = "Distribution of Cancer Mortality"
+  )
+
+#Diabetes mortality
+ggplot(syn, aes(x = diabetes_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Diabetes Mortality Count (Synthetic Data)",
+    y = "Frequency",
+    title = "Distribution of Diabetes Mortality"
+  )
+
+#Influenza and pneumonia mortality
+ggplot(syn, aes(x = influenza_pneumonia_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Influenza and Pneumonia Mortality Count (Synthetic Data)",
+    y = "Frequency",
+    title = "Distribution of Influenza and Pneumonia Mortality"
+  )
+
+#Heart disease mortality
+ggplot(syn, aes(x = heart_disease_count)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black") +
+  labs(
+    x = "Heart Disease Mortality Count (Synthetic Data)",
+    y = "Frequency",
+    title = "Distribution of Heart Disease Mortality"
+  )
+```
+
+These distributions match the original data well in terms of their range of values and where the mean lies. However, there are some variations in the shape of the data. While the mortality data in the original dataset was largely normal, some outliers that were present in the original data were gave some of the distributions a slight skew. The simulations here incorporated those outlier values in the main distrubution, so the shape of the distributions differed in the synthetic data. 
