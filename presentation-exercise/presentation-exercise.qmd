@@ -1,0 +1,220 @@
+---
+title: "Data Visualization Exercise"
+author: "Vincent Nguyen"
+date: "February 10, 2025"
+---
+
+# Coding Exercise for Week 6
+
+First, I asked ChatGPT the following:
+
+"Ok, I want to replicate a graph I found on this website, https://projects.fivethirtyeight.com/checking-our-work/nfl-games/,
+
+This is the graph:
+
+Code in R, also I provided the data."
+
+After feeding it the data, ChatGPT made the following graph:
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Load the data (update filename if needed)
+data_location <- here::here("presentation-exercise", "covid_approval_polls.csv")
+data <- read.csv(data_location)
+
+# Filter for Biden's approval ratings
+data_biden <- data %>%
+  filter(subject == "Biden" & party == "all") %>%
+  mutate(end_date = as.Date(end_date, format="%Y-%m-%d"))
+
+# Plot the approval and disapproval ratings over time with smoothing
+ggplot(data_biden, aes(x = end_date)) +
+  geom_point(aes(y = approve), color = "#E15759", alpha = 0.5) +
+  geom_smooth(aes(y = approve), color = "#E15759", linewidth = 1, span = 0.2, method = "loess", se = FALSE) +
+  geom_point(aes(y = disapprove), color = "#9C7DE5", alpha = 0.5) +
+  geom_smooth(aes(y = disapprove), color = "#9C7DE5", linewidth = 1, span = 0.2, method = "loess", se = FALSE) +
+  scale_x_date(date_breaks = "2 months", date_labels = "%m/%y") +
+  labs(title = "Do Americans approve of Biden’s response to the coronavirus crisis?",
+       subtitle = "A calculation of the share of all Americans who approve of the president’s handling of the coronavirus outbreak",
+       x = "Date",
+       y = "Approval Rating (%)",
+       color = "Response") +
+  theme_minimal()
+
+
+
+```
+
+As you can see, the resulting graph was very smooth compared to the original. It has a line down the middle lacking any of the jaggedness of the original. For reference, here is the original one created by FiveThirtyEight.\
+\
+![](images/Screenshot%202025-02-10%20164933.png)\
+\
+With this next iteration, I asked ChatGPT to reintroduce some of the jaggedness of the original graph. It gave me a satisfactory graph but I tweaked the smoothing to try to get a bit closer to the original. In the end, it does not perfectly mimic the FiveThirtyEight graph, however, I think it looks pretty similar. I also added in a legend.
+
+```{R}
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(zoo)
+
+# Load the data (update filename if needed)
+data_location <- here::here("presentation-exercise", "covid_approval_polls.csv")
+data <- read.csv(data_location)
+
+# Filter for Biden's approval ratings
+data_biden <- data %>%
+  filter(subject == "Biden" & party == "all") %>%
+  mutate(end_date = as.Date(end_date, format="%Y-%m-%d")) %>%
+  arrange(end_date) %>%
+  mutate(approve_smooth = rollmean(approve, k = 12, fill = NA, align = "right"),
+         disapprove_smooth = rollmean(disapprove, k = 12, fill = NA, align = "right"))
+
+# Plot the approval and disapproval ratings over time
+ggplot(data_biden, aes(x = end_date)) +
+  geom_point(aes(y = approve), color = "#E15759", alpha = 0.2) +
+  geom_line(aes(y = approve_smooth, color = "Approve"), linewidth = 0.8) +
+  geom_point(aes(y = disapprove), color = "#9C7DE5", alpha = 0.2) +
+  geom_line(aes(y = disapprove_smooth, color = "Disapprove"), linewidth = 0.8) +
+  scale_x_date(date_breaks = "2 months", date_labels = "%m/%y") +
+  labs(title = "Do Americans approve of Biden’s response to the coronavirus crisis?",
+       subtitle = "A calculation of the share of all Americans who approve of the president’s handling of the coronavirus outbreak",
+       x = "Date",
+       y = "Approval Rating (%)",
+       color = "Response") +
+  scale_color_manual(
+    values = c("Approve" = "#E15759", "Disapprove" = "#9C7DE5")
+  ) +
+  theme_minimal()
+```
+
+Creating the table was a bit more tricky. At first, I had created a table with average approval and disapproval rates. Additionally, the table had a net approval column, subtracing disapproval from approval. Lastly, the original copy of the table had1 month change in approval and disapproval columns.
+
+To better fit the requirements of the assignment, I needed to implement some form of color, boldness, and visual. I chose to color the observations corresponding to the approval and disapproval ratings, communicating changes in these values through saturation of color. I also wanted to bold the highest values, as they might be of most interest. For the visual, I chose to do a sparkline to track approval overtime. For these parts, I needed ChatGPT's help as I was not familiar with these more advanced concepts. I took it one by one, first asking it to make the approval column green and increase it with intensity as it increased. I also prompted it to make disapproval red and increase the saturation with its increase as well. Next, I asked it to bold the highest values of the three columns of interest. Lastly, I asked ChatGPT to create sparklines for the approval trend overtime. I asked it to try to make it simple and to try not to utilize too many packages. The resulting product is below.
+
+```{r}
+# load required libraries
+library(dplyr)
+library(lubridate)
+library(gt)
+library(gtExtras)
+library(purrr)
+
+# aggregate the data by month and compute additional columns
+monthly_data <- data_biden %>%
+  mutate(month = floor_date(end_date, "month")) %>%
+  group_by(month) %>%
+  summarise(
+    approve_avg    = mean(approve_smooth, na.rm = TRUE),
+    disapprove_avg = mean(disapprove_smooth, na.rm = TRUE),
+    net_approval   = mean(approve_smooth - disapprove_smooth, na.rm = TRUE)
+  ) %>%
+  arrange(month) %>%
+  mutate(
+    approve_trend    = approve_avg - lag(approve_avg),
+    disapprove_trend = disapprove_avg - lag(disapprove_avg)
+  ) %>%
+  tail(12)  
+
+# create a list-column containing approval history up to each month
+monthly_data <- monthly_data %>%
+  mutate(approval_history = map(seq_along(approve_avg), ~ approve_avg[1:.x]))
+
+# build the gt table with a sparkline column for approval trends
+monthly_data %>%
+  mutate(month = format(month, "%B %Y")) %>%
+  gt() %>%
+  gt_plt_sparkline(approval_history, type = "default") %>%
+  cols_label(
+    month             = "Month",
+    approve_avg       = "Avg Approval (%)",
+    disapprove_avg    = "Avg Disapproval (%)",
+    net_approval      = "Net Approval",
+    approve_trend     = "1-Month Approval Change",
+    disapprove_trend  = "1-Month Disapproval Change",
+    approval_history  = "Approval Trend"  
+  ) %>%
+  fmt_number(
+    columns  = c(approve_avg, disapprove_avg, net_approval, approve_trend, disapprove_trend),
+    decimals = 1
+  ) %>%
+  
+  # color corresponding to gains in approval or disapproval
+  data_color(
+    columns = approve_avg,
+    colors  = scales::col_numeric(
+      palette = c("#E6F4EA", "#2E7D32"),  
+      domain  = NULL
+    )
+  ) %>%
+  data_color(
+    columns = disapprove_avg,
+    colors  = scales::col_numeric(
+      palette = c("#FDEDEC", "#C62828"),  
+      domain  = NULL
+    )
+  ) %>%
+  data_color(
+    columns = net_approval,
+    colors  = scales::col_numeric(
+      palette = c("#FFCCCC", "#FFFFFF", "#99FF99"),  
+      domain  = NULL
+    )
+  ) %>%
+
+  tab_header(
+    title    = "Biden's Monthly COVID-19 Approval Ratings",
+    subtitle = "Averaged approval and disapproval ratings by month "
+  ) %>%
+  
+  # bold highest values for each column
+  tab_style(
+    style = list(cell_text(weight = "bold")),
+    locations = cells_body(
+      columns = approve_avg,
+      rows = approve_avg == max(approve_avg, na.rm = TRUE) 
+    )
+  ) %>%
+  tab_style(
+    style = list(cell_text(weight = "bold")),
+    locations = cells_body(
+      columns = disapprove_avg,
+      rows = disapprove_avg == max(disapprove_avg, na.rm = TRUE)  
+    )
+  ) %>%
+  tab_style(
+    style = list(cell_text(weight = "bold")),
+    locations = cells_body(
+      columns = net_approval,
+      rows = net_approval == max(net_approval, na.rm = TRUE)  
+    )
+  ) %>%
+
+  # make the font black
+  tab_style(
+    style = list(
+      cell_text(color = "black") 
+    ),
+    locations = cells_body(
+      columns = everything()
+    )
+  ) %>%
+  
+tab_footnote(
+    footnote = "Approval ratings are shaded from light green (low) to dark green (high). Disapproval ratings are shaded from light red (low) to dark red (high). Net approval is colored from red (negative) to white (neutral) to green (positive). Bolded values indiciate the highest of this recorded time period.",
+    locations = cells_column_labels(
+      columns = c(approve_avg, disapprove_avg, net_approval)
+    )
+  ) %>%
+  
+  tab_options(
+    table.border.top.color    = "black",
+    table.border.bottom.color = "black",
+    heading.align             = "center"
+  )
+
+
+```
+
+Overall, ChatGPT served as a great tool to help replicate and create visualizations and tables. Throughout this assignment, I faced prompting issues as I was not as specific as I could have been. For example, when creating the table, color assignment was off as it started using red and purple from the graph. Also, some of the column labels were often vague, which required me to go in and edit the code as necessary.
