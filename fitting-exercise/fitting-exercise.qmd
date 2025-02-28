@@ -1,0 +1,206 @@
+---
+title: "Data Fitting Exercise"
+author: "Vincent Nguyen"
+date: "February 27, 2025"
+---
+
+### Loading Data
+
+First, start with loading the data using a relative path.
+
+```{r}
+# Load packages
+library(ggplot2)
+library(dplyr)
+
+# Load the data
+data_location <- here::here("fitting-exercise", "data", "Mavoglurant_A2121_nmpk.csv")
+data <- read.csv(data_location)
+
+```
+
+### Preliminary Graph
+
+This section graphs out DV over time grouped by dosage.
+
+```{r}
+# Graph DV on y-axis and time on x
+ggplot(data, aes(x = TIME, y = DV, group = ID, color = as.factor(DOSE))) +
+  geom_line(alpha = 0.6) +
+  geom_point(alpha = 0.6) +
+  facet_wrap(~ DOSE) +  
+  labs(title = "DV Over Time by Dose",
+       x = "Time",
+       y = "DV",
+       color = "Dose") +
+  theme_minimal()
+
+
+```
+
+### Data Cleaning
+
+Cleaning data as directed by the assignment guidelines. Specifically, the final data set only contains DV, dosage, age, sex, race, weight, and height. Additionally, filtered out occurrences of individuals receiving more than one dose.
+
+```{r}
+# Keep rows where OCC = 1 only and time does not equal 0
+data_filtered <- data %>%
+  filter(OCC == 1, TIME != 0)
+
+sum_dv <- data_filtered %>%
+  group_by(ID) %>%
+  summarise(Y = sum(DV))
+
+data_zero <- data %>%
+  filter(OCC ==1, TIME == 0)
+
+data_final <- data_zero %>%
+  left_join(sum_dv, by = "ID")
+
+# Convert RACE and SEX into factors
+data_final$RACE <- as.factor(data_final$RACE)
+data_final$SEX <- as.factor(data_final$SEX)
+
+# Select specific variables of interest
+data_final <- data_final %>%
+  select(Y, DOSE, AGE, SEX, RACE, WT, HT)
+```
+
+### Exploratory Data Analysis
+
+\
+Created a summary table using the skimr package. I personally find this summary table to be more informative than the base summary().
+
+```{r}
+library(skimr)
+skim(data_final)
+```
+
+As part of the exploratory data analysis, I created a boxplot detailing DV per race. For the most part, the medians of each race seem similar, however, the range of DV values for Race 1 is extremely bigger than 7 or 88. Race 7 also has the smallest spread overall.
+
+```{r}
+histogram_race <- ggplot(data_final, aes(x = RACE, y = Y)) +
+    geom_boxplot(fill = "skyblue", color = "black") +
+    labs(title = "Boxplot of Y by Race", x = "Race", y = "Y") +
+  theme_minimal()
+
+print(histogram_race)
+```
+
+I calculated correlations using Pearson's for the continuous variables of Y, dose, weight, height, and age. I also created a correlation heat map (with the help of ChatGPT). Overall, not much seems to be correlated besides Y and dosage. As expected, height and weight have a slight correlation.
+
+```{r}
+
+library(reshape2)
+library(RColorBrewer)
+
+# Calculation of correlations
+cor_matrix = cor(data_final[,c("Y", "DOSE", "WT", "HT", "AGE")], method = "pearson")
+print(cor_matrix)
+
+# Melt the correlation matrix for ggplot
+cor_matrix_melted <- melt(cor_matrix)
+
+# Plot the heatmap
+ggplot(cor_matrix_melted, aes(Var1, Var2, fill = value)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Heatmap", x = "Variables", y = "Variables")
+```
+
+### Model Creation and Fitting
+
+This section details the creation of the models. First, we started with linear models.
+
+The model with only dosage as a predictor of Y resulted in a R-squared of 0.515 which means 51.5% of the variance in Y is explained by the model. The RMSE of this model is 666 meaning that, on average, the model's predictions are off by 666 units; this figure may require more context before deciding if this is good or not.
+
+The model with all predictors resulted in a R-squared of 0/754 which means 75.4% of the variance in Y is explained by the model. The RMSE of this model is 474 meaning that, on average, the model's predictions are off by 666 units; this figure may require more context before deciding if this is good or not.
+
+Overall, the second model, with dosage, age, sex, race, weight, and height, as predictors, performed much better than the more basic model. A R-squared of 0.754 does indicate room for improvement.
+
+```{r}
+library(tidymodels)
+
+# set method for modeling
+lm_mod <- linear_reg() %>%
+  set_engine("lm")
+
+# create model with only dose as predictor of y
+lm_y_dose <- lm_mod %>%
+  fit(Y ~ DOSE, data = data_final)
+lm_y_dose
+
+# create model with all predictors for y
+lm_y_all <- lm_mod %>%
+  fit(Y ~ DOSE * AGE * SEX * RACE * WT * HT, data = data_final)
+lm_y_all
+
+# create predictions based on the model, use for computation of metrics
+dose_predictions_lm <- predict(lm_y_dose, new_data = data_final)
+all_predictions_lm <- predict(lm_y_all, new_data = data_final)
+
+# Calculate RMSE and R-squared for dose model
+metrics_dose_lm <- tibble(truth = data_final$Y, predicted = dose_predictions_lm$.pred) %>%
+  metrics(truth = truth, estimate = predicted)
+metrics_dose_lm
+
+# Calculate RMSE and R-squared for model with all predictors
+metrics_all_lm <- tibble(truth = data_final$Y, predicted = all_predictions_lm$.pred) %>%
+  metrics(truth = truth, estimate = predicted)
+metrics_all_lm
+```
+
+Second, we created logistic regression models to predict sex instead.
+
+The first model only use dosage as a predictor of sex. It has an accuracy of 86.66% and kappa of 0. ChatGPT tells me the model does not perform better than random guessing chance when accounting for random agreement between predictors and true labels. The area under the curve is 0.591 indicating poor to fair predictive performance. The model requires improvements.
+
+The second model uses dosage, age, race, weight, and height to predict sex. With an accuracy of 98.33% and kappa of 0.93, the model performs well in raw accuracy and its ability to make predictions that surpasses random chance. Additionally, the area under the curve is 0.9982 which means that the model is very good at distinguishing the two classes of sex. This model is much better than the original one.
+
+```{r}
+# set method for modeling
+log_mod <- logistic_reg() %>%
+  set_engine("glm")
+
+# create model with only dose as predictor of SEX
+log_dose <- log_mod %>%
+  fit(SEX ~ DOSE, data = data_final)
+log_dose
+
+# create model with all predictors for SEX
+log_all <- log_mod %>%
+  fit(SEX ~ DOSE * AGE * RACE * WT * HT, data = data_final)
+log_all
+
+# create predictions based on the model, use for computation of metrics
+dose_predictions_log <- predict(log_dose, new_data = data_final, type = "prob")
+all_predictions_log <- predict(log_all, new_data = data_final, type = "prob")
+
+dose_predictions_class <- predict(log_dose, new_data = data_final)
+all_predictions_class <- predict(log_all, new_data = data_final)
+
+# Compute accuracy based off log_dose
+dose_accuracy <- metrics(data = tibble(truth = data_final$SEX, predicted = dose_predictions_class$.pred_class), 
+                    truth = truth, estimate = predicted)
+dose_accuracy
+
+# Compute accuracy based off log_all
+all_accuracy <- metrics(data = tibble(truth = data_final$SEX, predicted = all_predictions_class$.pred_class), 
+                    truth = truth, estimate = predicted)
+all_accuracy
+
+# Compute ROC/AUC for log_dose
+roc_auc_dose <- roc_auc(data = tibble(truth = data_final$SEX, 
+                                 .pred_1 = dose_predictions_log$.pred_1), 
+                   truth = truth, .pred_1)
+print(roc_auc_dose)
+
+# Compute ROC/AUC for log_all
+roc_auc_all <- roc_auc(data = tibble(truth = data_final$SEX, 
+                                 .pred_1 = all_predictions_log$.pred_1), 
+                   truth = truth, .pred_1)
+print(roc_auc_all)
+
+
+```
