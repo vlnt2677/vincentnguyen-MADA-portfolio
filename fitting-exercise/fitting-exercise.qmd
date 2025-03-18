@@ -204,3 +204,120 @@ print(roc_auc_all)
 
 
 ```
+
+Week 10 Exercise starts!
+
+Seeding and Splitting
+```{r}
+# Set seed
+rngseed = 1234
+
+# Filter data to include columns of interest
+data_ten <- select(data_final,Y, DOSE, AGE, SEX, WT, HT)
+
+# Set seed for splitting
+set.seed(rngseed)
+
+# Split data into training and testing
+# Put 3/4 of data into training set
+data_split <- initial_split(data_ten, prop = 3/4)
+
+train_data <- training(data_split)
+test_data <- training(data_split)
+```
+
+Model Fitting
+
+This section entails the creation of models but with the train_data instead of the original data set.
+```{r}
+# set method for modeling
+lm_mod <- linear_reg() %>%
+  set_engine("lm")
+
+# create model with only dose as predictor of y
+lm_y_dose <- lm_mod %>%
+  fit(Y ~ DOSE, data = train_data)
+lm_y_dose
+
+# create model with all predictors for y
+lm_y_all <- lm_mod %>%
+  fit(Y ~ DOSE * AGE * SEX * WT * HT, data = train_data)
+lm_y_all
+
+# Create null model
+null_mod <- null_model(mode = "regression") %>%
+  set_engine("parsnip") %>%
+  fit(Y ~ 1, data = train_data)
+```
+
+Model Performance Assessment 1
+
+This section entails the computation of RMSE and other stats to analyze model performance.
+```{r}
+# create predictions based on the model, use for computation of metrics
+dose_predictions_lm <- predict(lm_y_dose, new_data = train_data)
+all_predictions_lm <- predict(lm_y_all, new_data = train_data)
+null_predictions <- predict(null_mod, new_data = train_data)
+
+# Calculate RMSE and R-squared for dose model
+metrics_dose_lm <- tibble(truth = train_data$Y, predicted = dose_predictions_lm$.pred) %>%
+  metrics(truth = truth, estimate = predicted)
+
+
+# Calculate RMSE and R-squared for model with all predictors
+metrics_all_lm <- tibble(truth = train_data$Y, predicted = all_predictions_lm$.pred) %>%
+  metrics(truth = truth, estimate = predicted)
+
+
+# Calculate RMSE and R-squared for null model
+metrics_null_lm <- tibble(truth = train_data$Y, predicted = null_predictions$.pred) %>%
+  metrics(truth = truth, estimate = predicted)
+
+# Compare the metrics
+metrics_dose_lm
+metrics_all_lm
+metrics_null_lm
+```
+
+Model Performance Assessment 2
+
+This section utilizes 10 fold cross-validation to assess the models. The RMSE of the model with all predictors greatly increased, indicating great overfitting.
+```{r}
+# Set seed
+set.seed(1234)
+
+# Set seed for repeat
+set.seed(4321)
+
+# Create folds
+folds <- vfold_cv(train_data, v = 10)
+folds
+
+# Dose Model Workflow
+dose_cv <- workflow() %>%
+  add_model(lm_mod) %>%
+  add_formula(Y ~ DOSE)
+
+# Dose Model Resample
+dose_cv_rs <- dose_cv %>%
+  fit_resamples(folds)
+
+# Metrics for Dose model
+dose_metrics <- collect_metrics(dose_cv_rs)
+
+# All variables Model Workflow
+all_cv <- workflow() %>%
+  add_model(lm_mod) %>%
+  add_formula(Y ~ DOSE * AGE * SEX * WT * HT)
+
+# All Model Resample
+all_cv_rs <- all_cv %>%
+  fit_resamples(folds)
+
+# Metrics for All model
+all_metrics <- collect_metrics(all_cv_rs)
+
+dose_metrics
+all_metrics
+
+```
