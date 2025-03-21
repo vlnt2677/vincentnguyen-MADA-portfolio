@@ -321,3 +321,50 @@ dose_metrics
 all_metrics
 
 ```
+
+
+Part 3 
+
+This section was done before Part 2's completion.
+
+```{r}
+# Generating Predictions from Test data
+test_lm_two <- predict(lm_y_all, new_data = test_data)
+
+# calculate metrics from test data
+rmse_test_lm_two <- tibble(truth = test_data$Y, predicted = test_lm_two$.pred)%>%
+  metrics(truth = truth, estimate = predicted)
+
+# output
+rmse_test_lm_two
+
+```
+```{r}
+# Plot
+# create df for plotting
+train_plot_data <- tibble(Observed = train_data$Y, Predicted = all_predictions_lm$.pred, Dataset = "Training")
+test_plot_data <- tibble(Observed = test_data$Y, Predicted = test_lm_two$.pred, Dataset = "Test")
+
+# combine dfs
+plot_data <- bind_rows(train_plot_data, test_plot_data)
+
+# plot predicted vs observed with different colors for training and test
+ggplot(plot_data, aes(x = Observed, y = Predicted, color = Dataset)) +
+  geom_point(alpha = 0.5, size = 2) +  # Reduce opacity and increase point size for overlapping points
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("Training" = "red", "Test" = "blue")) +
+  labs(title = "Predicted vs Observed Values",
+       x = "Observed Y",
+       y = "Predicted Y",
+       color = "Dataset") +
+  theme_minimal()
+
+
+```
+This week's exercise started with seed setting to ensure reproducibillity and creating a new data frame with variables of interest using week eight's data. After this, the data was split into a 75% training and 25% testing set. The models from week eight (Model 1 = just dose as predictor. Model 2 = dose, age, sex, weight, and height as predictors) were fitted using the training data. These models were the nassessed using RMSE. Additionally, a null model was created. Model 2 performed the best, having the lowest RMSE.
+
+After the intial fitting, a 10-fold cross-validation was done. This process fitted the two models ten times each, constituing about 90% of the data. The other 10% was used to evaluate the fit by computing the RMSE of the model.
+
+Part 2 was not completed at the time of writing this.
+
+Regarding overall model assessment, both models performed better (in terms of RMSE) than the null model.  Model 1 having better results than the null makes sense. Presumably, knowing the dose helps towards predicting Y rather than no predictors at all. This could be difficult to use for real applications as the model is very simple. Model 2 also improves upon model 1. Logically, this makes sense considering the factors, like height and weight, that go into drug concentration. I would consider the model usable as the predictors are generally easy to measure and have logical sense in predicting drug concentration.The model is also interpretable as there is not too many predictors involved.

@@ -1142,7 +1142,7 @@ standard deviation, resulting in a divide by 0 error. `NA` will be returned.</co
 <pre><code>There were issues with some computations   A: x1</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>There were issues with some computations   A: x6</code></pre>
+<pre><code>There were issues with some computations   A: x5</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>There were issues with some computations   A: x10</code></pre>
@@ -1170,6 +1170,62 @@ standard deviation, resulting in a divide by 0 error. `NA` will be returned.</co
 2 rsq     standard      0.400    10   0.0794 Preprocessor1_Model1</code></pre>
 </div>
 </div>
+<p>Part 3</p>
+<p>This section was done before Part 2’s completion.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generating Predictions from Test data</span></span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>test_lm_two <span class="ot">&lt;-</span> <span class="fu">predict</span>(lm_y_all, <span class="at">new_data =</span> test_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in predict.lm(object = object$fit, newdata = new_data, type =
+"response", : prediction from rank-deficient fit; consider predict(.,
+rankdeficient="NA")</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate metrics from test data</span></span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>rmse_test_lm_two <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">truth =</span> test_data<span class="sc">$</span>Y, <span class="at">predicted =</span> test_lm_two<span class="sc">$</span>.pred)<span class="sc">%&gt;%</span></span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">metrics</span>(<span class="at">truth =</span> truth, <span class="at">estimate =</span> predicted)</span>
+<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb94-5"><a href="#cb94-5" aria-hidden="true" tabindex="-1"></a><span class="co"># output</span></span>
+<span id="cb94-6"><a href="#cb94-6" aria-hidden="true" tabindex="-1"></a>rmse_test_lm_two</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  .metric .estimator .estimate
+  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+1 rmse    standard     578.   
+2 rsq     standard       0.628
+3 mae     standard     415.   </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a><span class="co"># create df for plotting</span></span>
+<span id="cb96-3"><a href="#cb96-3" aria-hidden="true" tabindex="-1"></a>train_plot_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Observed =</span> train_data<span class="sc">$</span>Y, <span class="at">Predicted =</span> all_predictions_lm<span class="sc">$</span>.pred, <span class="at">Dataset =</span> <span class="st">"Training"</span>)</span>
+<span id="cb96-4"><a href="#cb96-4" aria-hidden="true" tabindex="-1"></a>test_plot_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Observed =</span> test_data<span class="sc">$</span>Y, <span class="at">Predicted =</span> test_lm_two<span class="sc">$</span>.pred, <span class="at">Dataset =</span> <span class="st">"Test"</span>)</span>
+<span id="cb96-5"><a href="#cb96-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a><span class="co"># combine dfs</span></span>
+<span id="cb96-7"><a href="#cb96-7" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(train_plot_data, test_plot_data)</span>
+<span id="cb96-8"><a href="#cb96-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb96-9"><a href="#cb96-9" aria-hidden="true" tabindex="-1"></a><span class="co"># plot predicted vs observed with different colors for training and test</span></span>
+<span id="cb96-10"><a href="#cb96-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> Observed, <span class="at">y =</span> Predicted, <span class="at">color =</span> Dataset)) <span class="sc">+</span></span>
+<span id="cb96-11"><a href="#cb96-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span>  <span class="co"># Reduce opacity and increase point size for overlapping points</span></span>
+<span id="cb96-12"><a href="#cb96-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb96-13"><a href="#cb96-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Training"</span> <span class="ot">=</span> <span class="st">"red"</span>, <span class="st">"Test"</span> <span class="ot">=</span> <span class="st">"blue"</span>)) <span class="sc">+</span></span>
+<span id="cb96-14"><a href="#cb96-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Predicted vs Observed Values"</span>,</span>
+<span id="cb96-15"><a href="#cb96-15" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Observed Y"</span>,</span>
+<span id="cb96-16"><a href="#cb96-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Predicted Y"</span>,</span>
+<span id="cb96-17"><a href="#cb96-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Dataset"</span>) <span class="sc">+</span></span>
+<span id="cb96-18"><a href="#cb96-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="fitting-exercise_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This week’s exercise started with seed setting to ensure reproducibillity and creating a new data frame with variables of interest using week eight’s data. After this, the data was split into a 75% training and 25% testing set. The models from week eight (Model 1 = just dose as predictor. Model 2 = dose, age, sex, weight, and height as predictors) were fitted using the training data. These models were the nassessed using RMSE. Additionally, a null model was created. Model 2 performed the best, having the lowest RMSE.</p>
+<p>After the intial fitting, a 10-fold cross-validation was done. This process fitted the two models ten times each, constituing about 90% of the data. The other 10% was used to evaluate the fit by computing the RMSE of the model.</p>
+<p>Part 2 was not completed at the time of writing this.</p>
+<p>Regarding overall model assessment, both models performed better (in terms of RMSE) than the null model. Model 1 having better results than the null makes sense. Presumably, knowing the dose helps towards predicting Y rather than no predictors at all. This could be difficult to use for real applications as the model is very simple. Model 2 also improves upon model 1. Logically, this makes sense considering the factors, like height and weight, that go into drug concentration. I would consider the model usable as the predictors are generally easy to measure and have logical sense in predicting drug concentration.The model is also interpretable as there is not too many predictors involved.</p>
 
 
 </section>
