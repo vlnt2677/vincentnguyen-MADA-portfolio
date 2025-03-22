@@ -12,6 +12,7 @@ First, start with loading the data using a relative path.
 # Load packages
 library(ggplot2)
 library(dplyr)
+library(purrr)
 
 # Load the data
 data_location <- here::here("fitting-exercise", "data", "Mavoglurant_A2121_nmpk.csv")
@@ -208,6 +209,7 @@ print(roc_auc_all)
 Week 10 Exercise starts!
 
 Seeding and Splitting
+
 ```{r}
 # Set seed
 rngseed = 1234
@@ -229,6 +231,7 @@ test_data <- training(data_split)
 Model Fitting
 
 This section entails the creation of models but with the train_data instead of the original data set.
+
 ```{r}
 # set method for modeling
 lm_mod <- linear_reg() %>%
@@ -253,6 +256,7 @@ null_mod <- null_model(mode = "regression") %>%
 Model Performance Assessment 1
 
 This section entails the computation of RMSE and other stats to analyze model performance.
+
 ```{r}
 # create predictions based on the model, use for computation of metrics
 dose_predictions_lm <- predict(lm_y_dose, new_data = train_data)
@@ -282,6 +286,7 @@ metrics_null_lm
 Model Performance Assessment 2
 
 This section utilizes 10 fold cross-validation to assess the models. The RMSE of the model with all predictors greatly increased, indicating great overfitting.
+
 ```{r}
 # Set seed
 set.seed(1234)
@@ -322,8 +327,139 @@ all_metrics
 
 ```
 
+## Part 2
 
-Part 3 
+### This section was contributed by Connor Norris
+
+```{r}
+#Put predicted and observed values of each model in a new data frame
+#Data frame for model fitting Y from dose
+model1_res <- data.frame(
+  truth = train_data$Y,
+  pred = dose_predictions_lm$.pred,
+  model = rep(1, nrow(train_data))
+)
+
+#Data frame for model fitting Y from all predictors
+model2_res <- data.frame(
+  truth = train_data$Y,
+  pred = all_predictions_lm$.pred,
+  model = rep(2, nrow(train_data))
+)
+
+#Data frame for null model
+null_mod_res <- data.frame(
+  truth = train_data$Y,
+  pred = null_predictions$.pred,
+  model = rep("null", nrow(train_data))
+)
+
+#Add all model results together
+model_res <- rbind(model1_res, model2_res, null_mod_res)
+
+#Plot predicted vs. observed values for all models
+ggplot(data = model_res, aes(x = truth, y = pred, colour = model)) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1) +
+  labs(
+    x = "Observed Value",
+    y = "Predicted Value",
+    title = "Observed vs. Predicted Values of Y from 3 Models",
+    colour = "Model"
+  ) +
+  scale_x_continuous(limits = c(0, 5000)) +
+  scale_y_continuous(limits = c(0, 5000))
+```
+
+```{r}
+#Calculate residuals for model 2
+model2_res <- mutate(model2_res, residuals = pred - truth)
+
+#Plot the residuals of model 2
+ggplot(model2_res, aes(x = pred, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0) + 
+  labs(
+    x = "Predicted Values",
+    y = "Residuals",
+    title = "Predicted Values vs. Residuals"
+  )
+```
+
+```{r}
+#Reset seed
+set.seed(rngseed)
+
+#Generate bootstrap samples
+bootstraps <- bootstraps(data = train_data, times = 1000)
+
+#Fit the model and make predictions for each bootstrap sample
+predictions_list <- map(bootstraps$splits, function(split) {
+  #Extract the bootstrap sample
+  boot_data <- analysis(split)
+  
+  #Fit the model (replace this with your model)
+  model <- lm_mod %>%
+    fit(Y ~ ., data = boot_data)
+  
+  # Make predictions on the original training data
+  preds <- predict(model, new_data = train_data)
+  
+  return(preds)
+})
+
+#Convert the list to a data frame for easier handling
+predictions_df <- as.data.frame(do.call(cbind, predictions_list))
+
+#View first few rows
+head(predictions_df)
+
+#Transpose to have samples as rows and data points as columns
+predictions_df <- t(predictions_df)
+
+#Calculate median and 95% confidence intervals
+preds <- predictions_df |> apply(2, quantile,  c(0.025, 0.5, 0.975)) |> t()
+```
+
+```{r, warning=FALSE}
+#Make a data frame for plotting
+plot_data <- data.frame(
+  truth = train_data$Y,
+  point_estimate = model2_res$pred,
+  median = preds[,2],
+  lower_ci = preds[,1],
+  upper_ci = preds[,3]
+)
+
+#Plot observed values vs. estimates
+ggplot(data = plot_data, aes(x = truth)) +
+  geom_point(aes(y = point_estimate, color = "Point Estimate"), size = 2) + #Original predicted value
+  geom_point(aes(y = median, color = "Median Prediction"), size = 2) + #Median predicted value from bootstrapping
+  geom_point(aes(y = lower_ci, color = "Lower 95% CI"), size = 1, alpha = 0.7) + #Lower bound of 95% CI
+  geom_point(aes(y = upper_ci, color = "Upper 95% CI"), size = 1, alpha = 0.7) + #Upper bound of 95% CI +
+  geom_abline(intercept = 0, slope = 1) +
+  scale_x_continuous(limits = c(0, 5000)) +
+  scale_y_continuous(limits = c(0, 5000)) +
+  labs(
+    x = "Observed Values",
+    y = "Predictions",
+    title = "Observed Values vs. Predictions"
+  ) +
+  scale_color_manual(
+    name = "Legend", 
+    values = c(
+      "Point Estimate" = "black",
+      "Median Prediction" = "blue",
+      "Lower 95% CI" = "red",
+      "Upper 95% CI" = "purple"
+    )
+  ) + 
+  theme_minimal()
+```
+
+The bootstrapping predictions perform about the same as the original model with all predictors, as the median values largely overlap with the point estimates, and their distributions about the 45 degree line are similar.
+
+Part 3
 
 This section was done before Part 2's completion.
 
@@ -339,6 +475,7 @@ rmse_test_lm_two <- tibble(truth = test_data$Y, predicted = test_lm_two$.pred)%>
 rmse_test_lm_two
 
 ```
+
 ```{r}
 # Plot
 # create df for plotting
@@ -361,10 +498,11 @@ ggplot(plot_data, aes(x = Observed, y = Predicted, color = Dataset)) +
 
 
 ```
+
 This week's exercise started with seed setting to ensure reproducibillity and creating a new data frame with variables of interest using week eight's data. After this, the data was split into a 75% training and 25% testing set. The models from week eight (Model 1 = just dose as predictor. Model 2 = dose, age, sex, weight, and height as predictors) were fitted using the training data. These models were the nassessed using RMSE. Additionally, a null model was created. Model 2 performed the best, having the lowest RMSE.
 
 After the intial fitting, a 10-fold cross-validation was done. This process fitted the two models ten times each, constituing about 90% of the data. The other 10% was used to evaluate the fit by computing the RMSE of the model.
 
 Part 2 was not completed at the time of writing this.
 
-Regarding overall model assessment, both models performed better (in terms of RMSE) than the null model.  Model 1 having better results than the null makes sense. Presumably, knowing the dose helps towards predicting Y rather than no predictors at all. This could be difficult to use for real applications as the model is very simple. Model 2 also improves upon model 1. Logically, this makes sense considering the factors, like height and weight, that go into drug concentration. I would consider the model usable as the predictors are generally easy to measure and have logical sense in predicting drug concentration.The model is also interpretable as there is not too many predictors involved.
+Regarding overall model assessment, both models performed better (in terms of RMSE) than the null model. Model 1 having better results than the null makes sense. Presumably, knowing the dose helps towards predicting Y rather than no predictors at all. This could be difficult to use for real applications as the model is very simple. Model 2 also improves upon model 1. Logically, this makes sense considering the factors, like height and weight, that go into drug concentration. I would consider the model usable as the predictors are generally easy to measure and have logical sense in predicting drug concentration.The model is also interpretable as there is not too many predictors involved.
