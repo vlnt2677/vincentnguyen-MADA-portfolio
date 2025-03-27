@@ -1,0 +1,235 @@
+---
+title: "Machine Learning Models Exercise"
+author: "Vincent Nguyen"
+date: "March 26, 2025"
+---
+
+# Week 11 Machine Learning Models I
+
+This exercise starts with loading packages, the data, and setting a seed.
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidymodels)
+library(dplyr)
+library(glmnet)
+library(ranger)
+
+
+set.seed(1234)
+rngseed = 1234
+data <- readRDS(here("ml-models-exercise", "finaldata.rds"))
+
+```
+
+As part of the assignment specifications, race needs to be standardized into 3 factor levels.
+
+```{r}
+# Change values 7 and 88 to be 3 instead
+data <- data %>%
+  mutate(RACE = factor(case_when(
+    RACE %in% c(7, 88) ~ "3",
+    TRUE ~ as.character(RACE)
+  )))
+```
+
+Next, we look at some pairwise correlations. Usually, strong correlations are removed from modeling but for this assignment, things look good as is.
+
+```{r}
+# Code from fitting-exercise; this is a correlation heatmap
+
+library(reshape2)
+library(RColorBrewer)
+
+# Calculation of correlations
+cor_matrix = cor(data[,c("Y", "DOSE", "WT", "HT", "AGE")], method = "pearson")
+print(cor_matrix)
+
+# Melt the correlation matrix for ggplot
+cor_matrix_melted <- melt(cor_matrix)
+
+# Plot the heatmap
+ggplot(cor_matrix_melted, aes(Var1, Var2, fill = value)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Heatmap", x = "Variables", y = "Variables")
+```
+
+This section entails the creation of 3 models using the TidyModels workflow. Model 1 is a linear regression model, model 2 is made with LASSO, and the last model utilizes random forest.
+
+```{r}
+# Calculate and create BMI column
+data$BMI <- data$WT / data$HT^2
+
+recipe <- recipe(Y ~ DOSE + AGE + SEX + RACE + WT + HT + BMI, data = data) %>%
+  step_dummy(all_nominal_predictors())
+
+# set method for modeling
+lm_spec <- linear_reg() %>%
+  set_engine("lm")
+
+# Insert recipe
+lm_wf <- workflow() %>%
+  add_recipe(recipe)
+
+lm_fit <- lm_wf %>%
+  add_model(lm_spec) %>%
+  fit(data = data)
+
+lm_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+  
+
+# Set method for LASSO
+lasso_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+  set_engine("glmnet")
+
+# Insert recipe
+lasso_wf <- workflow() %>%
+  add_recipe(recipe)
+
+lasso_fit <- lasso_wf %>%
+  add_model(lasso_spec) %>%
+  fit(data = data)
+
+lasso_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+  
+# Set method for random forest
+forest_spec <- rand_forest(mode = "regression") %>%
+  set_engine("ranger", seed = rngseed)
+
+# Insert recipe
+forest_wf <- workflow() %>%
+  add_recipe(recipe)
+
+# Create model with all predictors and random forest
+forest_fit <- forest_wf %>%
+ add_model(forest_spec) %>%
+  fit(data = data)
+
+
+# Make predictions and calculate RMSE with models
+
+# Linear Model
+lm_preds <- predict(lm_fit, new_data = data)
+lm_preds <- tibble(truth = data$Y, predicted = lm_preds$.pred)
+lm_rmse <- lm_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(lm_rmse)
+
+# Lasso Model
+lasso_preds <- predict(lasso_fit, new_data = data)
+lasso_preds <- tibble(truth = data$Y, predicted = lasso_preds$.pred)
+lasso_rmse <- lasso_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(lasso_rmse)
+
+# Forest
+forest_preds <- predict(forest_fit, new_data = data)
+forest_preds <- tibble(truth = data$Y, predicted = forest_preds$.pred)
+forest_rmse <- forest_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(forest_rmse)
+```
+
+## The next two coding chunks entail basic tuning of models without the use of cross-validation.
+
+```{r}
+# Seed Seed
+set.seed(1234)
+
+# tune lasso
+tune_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
+  set_engine("glmnet")
+
+# create grid
+lasso_grid <- tibble(penalty = 10^seq(-5, 2, length.out = 50))
+
+# Resample using apparent
+lasso_resample <- apparent(data)
+
+# Tune grid
+set.seed(1234)
+lasso_tune_res <- tune_grid(
+  lasso_wf %>% add_model(tune_spec),
+  resamples = lasso_resample,
+  grid = lasso_grid,
+  metrics = metric_set(rmse, rsq)
+)
+
+# collect metrics
+lasso_tune_res %>%
+  collect_metrics()
+
+# getting error that autoplot(lasso_tune_res) does not work because of apparent()
+```
+
+```{r}
+# Tuning forest
+forest_spec <- rand_forest(
+  mode = "regression", 
+  trees = 300, 
+  mtry = tune(), 
+  min_n = tune()
+) %>%
+  set_engine("ranger")
+
+# Create grid with set parameters
+forest_grid <- grid_regular(
+  mtry(range = c(1, 7)),  
+  min_n(range = c(1, 21)),  
+  levels = 7  
+)
+
+# Resample using apparent
+forest_resample <- apparent(data)
+
+# Tune forest
+set.seed(1234)
+forest_tune_res <- tune_grid(
+  forest_wf %>% add_model(forest_spec),
+  resamples = forest_resample, 
+  grid = forest_grid, 
+  metrics = metric_set(rmse, rsq)
+)
+
+# getting error that autoplot(forest_tune_res) does not work because of apparent()
+```
+
+## The next two coding chunks entail basic tuning of models withthe use of cross-validation.
+
+```{r}
+# Set seed
+set.seed(1234)
+
+# 5 fold crossvalidation repeated 5 times
+cv_folds <- vfold_cv(data, v = 5, repeats = 5)
+
+# Tune the grid
+lasso_tune_res <- tune_grid(
+  lasso_wf %>% add_model(tune_spec),
+  resamples = cv_folds,
+  grid = lasso_grid,
+  metrics = metric_set(rmse, rsq)
+)
+
+# Plot results
+autoplot(lasso_tune_res)
+
+# Tune the forest
+forest_tune_res <- tune_grid(
+  forest_wf %>% add_model(forest_spec),
+  resamples = cv_folds,  
+  grid = forest_grid,
+  metrics = metric_set(rmse, rsq)
+)
+
+# Plot results
+autoplot(forest_tune_res)
+```

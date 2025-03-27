@@ -58,6 +58,8 @@ data_zero <- data %>%
 data_final <- data_zero %>%
   left_join(sum_dv, by = "ID")
 
+
+
 # Convert RACE and SEX into factors
 data_final$RACE <- as.factor(data_final$RACE)
 data_final$SEX <- as.factor(data_final$SEX)
@@ -65,6 +67,10 @@ data_final$SEX <- as.factor(data_final$SEX)
 # Select specific variables of interest
 data_final <- data_final %>%
   select(Y, DOSE, AGE, SEX, RACE, WT, HT)
+
+save_data_location <- here::here("ml-models-exercise","finaldata.rds")
+saveRDS(data_final, file = save_data_location)
+
 ```
 
 ### Exploratory Data Analysis
@@ -135,7 +141,7 @@ lm_y_dose
 
 # create model with all predictors for y
 lm_y_all <- lm_mod %>%
-  fit(Y ~ DOSE * AGE * SEX * RACE * WT * HT, data = data_final)
+  fit(Y ~ DOSE + AGE + SEX + RACE + WT + HT, data = data_final)
 lm_y_all
 
 # create predictions based on the model, use for computation of metrics
@@ -171,7 +177,7 @@ log_dose
 
 # create model with all predictors for SEX
 log_all <- log_mod %>%
-  fit(SEX ~ DOSE * AGE * RACE * WT * HT, data = data_final)
+  fit(SEX ~ DOSE + AGE + RACE + WT + HT, data = data_final)
 log_all
 
 # create predictions based on the model, use for computation of metrics
@@ -244,7 +250,7 @@ lm_y_dose
 
 # create model with all predictors for y
 lm_y_all <- lm_mod %>%
-  fit(Y ~ DOSE * AGE * SEX * WT * HT, data = train_data)
+  fit(Y ~ DOSE + AGE + SEX + WT + HT, data = train_data)
 lm_y_all
 
 # Create null model
@@ -313,7 +319,7 @@ dose_metrics <- collect_metrics(dose_cv_rs)
 # All variables Model Workflow
 all_cv <- workflow() %>%
   add_model(lm_mod) %>%
-  add_formula(Y ~ DOSE * AGE * SEX * WT * HT)
+  add_formula(Y ~ DOSE + AGE + SEX + WT + HT)
 
 # All Model Resample
 all_cv_rs <- all_cv %>%
