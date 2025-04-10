@@ -1,1 +1,1 @@
-# My website and data analysis portfolio
+# This is the GitHub repository for Vincent's Modern Applied Data Analysis portfolio!

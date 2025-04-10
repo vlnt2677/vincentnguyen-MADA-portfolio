@@ -1,0 +1,275 @@
+---
+title: "Tidy Tuesday Exercise"
+author: "Vincent Nguyen"
+date: "April 8th, 2025"
+---
+
+# Week 13 Tidy Tuesday
+
+### For this TidyTuesday, the data are state-level results from medicare.gov "timely and effective care" measurements.
+
+### For this assignment, I tried to create models to predict percentage of patients who received appropriate care for severe sepsis and septic shock.
+
+First, I started with loading packages and the data.
+
+```{r}
+library(here)
+library(ggplot2)
+library(tidymodels)
+library(dplyr)
+library(skimr)
+library(vip)
+library(tidymodels)
+library(car)
+
+data_location <- here::here("tidytuesday-exercise", "data","care_state.csv")
+
+data <- read.csv(data_location)
+```
+
+I begin with skimming through the data and assess any potential hypotheses based on the measure names.
+
+```{r}
+
+# Use skim to look at data but also if there is anything missing
+skim(data)
+
+# Look at unique measure names for further exploration
+unique(data$measure_name)
+
+# Inspect
+head(data)
+
+# Inspect
+colnames(data)
+
+```
+
+Based on these measures, I am interested in predicting measure\[17\], "Percentage of patients who received appropriate care for severe sepsis and septic shock. Higher percentages are better". With this in mind, I will remove some measures I am not interested in.
+
+I included seemingly irrelevant measures, like staff immunization, to assess its affect on the care of severe sepsis and septic shock. I also wanted to see how this predictor acts in modeling.
+
+```{r}
+# Filter out data
+data <- data %>%
+  filter(measure_id %in% c("OP_18b", "IMM_3", "SEP_1", "SEP_SH_3HR", "SEP_SH_6HR", "SEV_SEP_3HR", "SEV_SEP_6HR", "OP_22"))
+
+```
+
+Creation of a wide format and aggregate version of the data. To explain further, I had originally converted data into a wide format to find out lots of values were missing. To combat this, I figured it would be ok to average values from different time periods (considering they are within a year of each other) to have a more complete data set.
+
+```{r}
+# Convert into wide format
+data_wide <- data %>%
+  group_by(measure_id, state) %>%
+  summarise(score = mean(score))
+
+data_wide <- data_wide %>%
+  pivot_wider(names_from = measure_id, values_from = score)
+```
+
+```{r}
+data_bundle <- data %>%
+  filter(measure_id %in% c("SEP_SH_3HR", "SEP_SH_6HR", "SEV_SEP_3HR", "SEV_SEP_6HR"))
+
+histo <- ggplot(data_bundle, aes(x = score, fill = measure_id)) +
+  geom_histogram(color = "black", alpha = 0.5) +
+  facet_wrap(~ measure_id, scales = "free_y") +
+  labs(title = "Distribution of Scores by Measure",
+       x = "Score",
+       y = "Count",
+       fill = "Measure") + theme_minimal()
+
+print(histo)
+```
+
+Based on this histogram, we can see that most places are scoring above a 70 in these measures. I am unsure what the scoring scale is but we can see that most states tend to perform very similarly and see little variability in scores.
+
+Before building a model, correlation analysis is done.
+
+```{r}
+library(corrplot)
+library(knitr)
+library(reshape2)
+library(RColorBrewer)
+
+cor_df <- data_wide %>%
+  select(-1)
+
+cor_matrix <- cor(cor_df, method = "pearson", use = "complete.obs")
+
+print(cor_matrix)
+
+# Melt the correlation matrix for ggplot
+cor_matrix_melted <- melt(cor_matrix)
+
+# Plot the heatmap
+matrix <- ggplot(cor_matrix_melted, aes(Var1, Var2, fill = value)) + 
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Heatmap", x = "Variables", y = "Variables")
+
+print(matrix)
+```
+
+After inspection, it seems things do have some high correlation values. This will be important to note when creating models. I intend on calculating VIF to assess its effect.
+
+Model Fitting
+
+First, I begin by splitting the data into 5 folds.
+
+```{r}
+# Set seed
+seed <- 123
+set.seed(seed)
+
+# Cross validation
+data_split <- initial_split(data_wide, prop = 0.8)
+
+train_data <- training(data_split)
+test_data <- testing(data_split)
+
+folds <- vfold_cv(train_data, v = 5)
+
+```
+
+I start with a regular linear regression model. I also set the recipe. In this code chunk, I also calculate some metrics and chart out variable importance. This model has a strong r-squared value and reasonable rmse. However, multicolinearity is still a concern.
+
+```{r}
+# Set recipe (also omit na rows and normalize the numeric predictors)
+recipe <- recipe(SEP_1 ~ OP_18b + IMM_3 + SEP_SH_3HR + SEP_SH_6HR + SEV_SEP_3HR + SEV_SEP_6HR + OP_22, data = train_data) %>%
+  step_naomit(all_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+
+lm_spec <- linear_reg() %>%
+  set_engine("lm")
+
+# Insert recipe
+lm_wf <- workflow() %>%
+  add_recipe(recipe)
+
+lm_fit <- lm_wf %>%
+  add_model(lm_spec) %>%
+  fit(data = train_data)
+
+lm_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+
+# Make predictions on test data and calculate RMSE
+lm_preds <- predict(lm_fit, new_data = train_data)
+lm_preds <- tibble(truth = train_data$SEP_1, predicted = lm_preds$.pred)
+lm_rmse <- lm_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(lm_rmse)
+
+# AIC and BIC
+glance(lm_fit)
+
+# Chart variable importance
+vip(lm_fit)
+```
+
+As I noted earlier, the high values found in the correlation matrix are concerning. To check, I calculated VIF to really see which predictors are a problem.
+
+```{r}
+lm_model <- lm(SEP_1 ~ OP_18b + IMM_3 + SEP_SH_3HR + SEP_SH_6HR + SEV_SEP_3HR + SEV_SEP_6HR + OP_22, data = train_data) 
+
+# Calculate VIF
+vif_value <- vif(lm_model)
+print(vif_value)
+```
+
+Based on the code chunk above, we do have some multiconlinearity, specifically in both 6 hour bundles. To tackle this, I chose to implement LASSO regression. According to what I have read online, LASSO can handle multicollinearity by shrinking correlated predictors toward zero. LASSO has seemingly shrunk influenza vaccination figures and average median time in emergency departments. Both of these variables were the lowest in the linear regression model's VIP. Interestingly, septic shock 3 hour bundles have lower importance in this model. Severe sepsis 3 hour bundles are far and away the most importance variable in this model.
+
+Also, rmse and r-squared values are very similar to the regular linear regression model.
+
+```{r}
+lasso_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+  set_engine("glmnet")
+
+# Insert recipe
+lasso_wf <- workflow() %>%
+  add_recipe(recipe)
+
+lasso_fit <- lasso_wf %>%
+  add_model(lasso_spec) %>%
+  fit(data = train_data)
+
+lasso_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+
+# Make predictions on test data and calculate RMSE
+lasso_preds <- predict(lasso_fit, new_data = train_data)
+lasso_preds <- tibble(truth = train_data$SEP_1, predicted = lasso_preds$.pred)
+lasso_rmse <- lasso_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(lasso_rmse)
+
+# Chart variable importance
+vip(lasso_fit)
+```
+
+The forest model has the greatest rmse and loses a bit of interpret-ability as it is a black box. Interestingly, the VIP has shifted some rankings around, making immunization and average median time more important.
+
+```{r}
+# Set method for random forest
+forest_spec <- rand_forest(mode = "regression") %>%
+  set_engine("ranger", importance = "impurity", seed = seed)
+
+# Insert recipe
+forest_wf <- workflow() %>%
+  add_recipe(recipe)
+
+# Create model with all predictors and random forest
+forest_fit <- forest_wf %>%
+ add_model(forest_spec) %>%
+  fit(data = train_data)
+
+# Make predictions on test data and calculate RMSE
+forest_preds <- predict(forest_fit, new_data = train_data)
+forest_preds <- tibble(truth = train_data$SEP_1, predicted = forest_preds$.pred)
+forest_rmse <- forest_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(forest_rmse)
+
+# Chart varaible importance
+vip(forest_fit)
+
+```
+
+Before I evaluate the models with the testing data, I believe the Lasso is the best model because of its robustness and its performance metrics. It performs similarly enough to the linear regression model while still addressing multicolinearity. Lasso can also help prevent overfitting which is a great concern considering we have not used the test data yet. It also still has enough interpret-abiltiy to make it understandable.
+
+This part entails the evaluation of the models using the testing data instead. Realistically, the testing data size is too small to be conclusive.
+
+In this, we see that the initial model performs the best, with the LASSO model trailing really closely behind. This testing split has lead the random forest to perform much worse. This could be because of its tendency to over fit or the fact that the testing split is small.
+
+```{r}
+# First, Linear Regression
+lm_preds <- predict(lm_fit, new_data = test_data)
+lm_preds <- tibble(truth = test_data$SEP_1, predicted = lm_preds$.pred)
+lm_rmse <- lm_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(lm_rmse)
+
+# Lasso Model
+lasso_preds <- predict(lasso_fit, new_data = test_data)
+lasso_preds <- tibble(truth = test_data$SEP_1, predicted = lasso_preds$.pred)
+lasso_rmse <- lasso_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(lasso_rmse)
+
+# Random Forest
+forest_preds <- predict(forest_fit, new_data = test_data)
+forest_preds <- tibble(truth = test_data$SEP_1, predicted = forest_preds$.pred)
+forest_rmse <- forest_preds %>%
+  metrics(truth = truth, estimate = predicted)
+print(forest_rmse)
+```
+
+Regarding the final LASSO model, it seems that score for severe sepsis 3 hour bundles and septic shock 3 hour bundles has the greatest effects on percentage of patients receiving appropriate care for severe sepsis and septic shock. This makes complete sense considering the bundles are the standard protocol for patients with sepsis or septic shock.This finding just provides more evidence for its utility in providing appropriate care.
+
+Percentage of healthcare workers immunized against influenza and average median time spend in an emergency department have little effect on appropriate care. This is a bit shocking to me as I imagined these variables would be an indication of healthcare quality. However, it seems that in the context of sepsis, these variables do not matter.
